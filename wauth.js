@@ -240,8 +240,9 @@ function catcher(result){
     console.log("catcher runner");
     console.log(jsonres);
     setCookieWithExpireHour(tokencookiename,jsonres.login,tokencookiehourslifetime);
-    fillformLogin(jsonres);
-    submitLogin();
+    window.location.replace("https://gocroot.github.io/app");
+    // fillformLogin(jsonres);
+    // submitLogin();
   }
 }
 

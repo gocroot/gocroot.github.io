@@ -9,7 +9,7 @@ type Example struct {
 ```
 ## Publish Package
 Set ENV variabel in your OS : GOPROXY=proxy.golang.org  
-![image](https://github.com/gocroot/gocroot.github.io/assets/11188109/78f4c4c2-3b13-4fef-8f1a-92201a3cb494)
+![image](https://github.com/gocroot/gocroot.github.io/assets/11188109/b9d02250-bc4a-488e-a6be-ffe3e743d1bb)
 
 ```sh
 go get -u all					#update existing package

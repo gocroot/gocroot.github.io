@@ -8,6 +8,7 @@ type Example struct {
 }
 ```
 ## Publish Package
+Commit all of your work.  
 Set ENV variabel in your OS : GOPROXY=proxy.golang.org  
 ![image](https://github.com/gocroot/gocroot.github.io/assets/11188109/b9d02250-bc4a-488e-a6be-ffe3e743d1bb)
 

@@ -9,7 +9,7 @@ type Example struct {
 ```
 1. json : for content/type json in RestFul
 2. bson : using in mongoDB as name of field
-3. url : use in url query, like : https://domain.com/?messages=oaus098ji
+3. url : use as variabel name in url query, like : https://domain.com/?messages=oaus098ji
 4. reqHeader : use as HTTP header name in Request, like Authorization, Token, Content-Type, Origin
 
 

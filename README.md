@@ -26,6 +26,42 @@ git tag v0.0.3                          	#set tag version
 git push origin --tags                  	#push tag version to repo
 go list -m github.com/aiteung/presensi@v0.0.3   #publish to pkg dev, replace ORG/URL with your repo URL
 ```
+## Siapkan SSH dan Script Deploy
+
+### SSH tanpa password
+sebelum membuat script deply.bat kita pastikan dulu ssh kita tanpa password. Sehingga tidak perlu memasukkan password
+setiap kali menjalankan script deploy.  
+Using git bash create yout key, you dont have to do this if you already have a key
+```sh
+ssh-keygen -t rsa -b 4096 -C "rolly@awang.ga"
+```
+
+send key to the server
+```sh
+cat ~/.ssh/id_rsa.pub | ssh -p 123 usernya@hostnya.com 'cat >> .ssh/authorized_keys'
+```
+ssh into server and change permission
+```sh
+chmod 700 .ssh; chmod 640 .ssh/authorized_keys
+```
+### Script Deploy
+script deploy jika pada saat go mod init bernama api  
+```sh
+$env:GOOS = 'linux'
+$env:CGO_ENABLED = '1'
+go build
+scp -P 123 api user@domain:/root/apinew
+ssh -p 123 user@domain chmod +x /root/apinew
+ssh -p 123 user@domain ls -l
+ssh -p 123 user@domain systemctl status api
+ssh -p 123 user@domain systemctl stop api
+ssh -p 123 user@domain systemctl status api
+ssh -p 123 user@domain mv /root/apinew /root/api
+ssh -p 123 user@domain systemctl start api
+ssh -p 123 user@domain systemctl status api
+
+```
+
 
 ## Deploy Binary on Web Hosting
 buat file run.sh dan stop.sh file. run.sh file  
@@ -61,39 +97,6 @@ RewriteRule ^(.*)$ http://127.0.0.1:8080/api/$1 [P]
 </IfModule>
 ```
 ## Deploy Binary to VPS
-### SSH tanpa password
-sebelum membuat script deply.bat kita pastikan dulu ssh kita tanpa password. Sehingga tidak perlu memasukkan password
-setiap kali menjalankan script deploy.  
-Using git bash create yout key, you dont have to do this if you already have a key
-```sh
-ssh-keygen -t rsa -b 4096 -C "rolly@awang.ga"
-```
-
-send key to the server
-```sh
-cat ~/.ssh/id_rsa.pub | ssh -p 123 usernya@hostnya.com 'cat >> .ssh/authorized_keys'
-```
-ssh into server and change permission
-```sh
-chmod 700 .ssh; chmod 640 .ssh/authorized_keys
-```
-### Script Deploy
-script deploy jika pada saat go mod init bernama api  
-```sh
-$env:GOOS = 'linux'
-$env:CGO_ENABLED = '1'
-go build
-scp -P 123 api user@domain:/root/apinew
-ssh -p 123 user@domain chmod +x /root/apinew
-ssh -p 123 user@domain ls -l
-ssh -p 123 user@domain systemctl status api
-ssh -p 123 user@domain systemctl stop api
-ssh -p 123 user@domain systemctl status api
-ssh -p 123 user@domain mv /root/apinew /root/api
-ssh -p 123 user@domain systemctl start api
-ssh -p 123 user@domain systemctl status api
-
-```
 
 ### disable not used services
 

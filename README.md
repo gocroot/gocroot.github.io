@@ -64,6 +64,10 @@ ssh -p 123 user@domain systemctl status api
 
 
 ## Deploy Binary on Web Hosting
+Buat dulu folder dan chmod folder tersebut ke 755
+```sh
+chmod -R 755 namafolder
+```
 buat file run.sh dan stop.sh file. run.sh file  
 ```sh
 #!/bin/bash
@@ -86,7 +90,12 @@ else
     echo "udah di-stop" > ./out.txt
 fi
 ```
-.htaccess file  
+pastikan dua file tersebut bisa di eksekusi dengan perintah chmod
+```sh
+chmod a+x run.sh stop.sh
+```
+
+buat .htaccess file di dalam folder
 ```config
 Options +FollowSymLinks -Indexes
 IndexIgnore *

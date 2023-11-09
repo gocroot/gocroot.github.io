@@ -71,7 +71,7 @@ ssh-keygen -t rsa -b 4096 -C "rolly@awang.ga"
 
 send key to the server
 ```sh
-cat ~/.ssh/id_rsa.pub | ssh usernya@hostnya.com 'cat >> .ssh/authorized_keys'
+cat ~/.ssh/id_rsa.pub | ssh -p 123 usernya@hostnya.com 'cat >> .ssh/authorized_keys'
 ```
 ssh into server and change permission
 ```sh

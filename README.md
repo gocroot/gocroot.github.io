@@ -62,20 +62,20 @@ RewriteRule ^(.*)$ http://127.0.0.1:8080/api/$1 [P]
 ```
 ## Deploy Binary to VPS
 ### build
-
+if the package init name api  
 ```sh
 $env:GOOS = 'linux'
 $env:CGO_ENABLED = '1'
 go build
-scp -P 24520 api root@103.155.250.23:/root/apinew
-ssh -p 24520 root@103.155.250.23 chmod +x /root/apinew
-ssh -p 24520 root@103.155.250.23 ls -l
-ssh -p 24520 root@103.155.250.23 systemctl status api
-ssh -p 24520 root@103.155.250.23 systemctl stop api
-ssh -p 24520 root@103.155.250.23 systemctl status api
-ssh -p 24520 root@103.155.250.23 mv /root/apinew /root/api
-ssh -p 24520 root@103.155.250.23 systemctl start api
-ssh -p 24520 root@103.155.250.23 systemctl status api
+scp -P 123 api user@domain:/root/apinew
+ssh -p 123 user@domain chmod +x /root/apinew
+ssh -p 123 user@domain ls -l
+ssh -p 123 user@domain systemctl status api
+ssh -p 123 user@domain systemctl stop api
+ssh -p 123 user@domain systemctl status api
+ssh -p 123 user@domain mv /root/apinew /root/api
+ssh -p 123 user@domain systemctl start api
+ssh -p 123 user@domain systemctl status api
 
 ```
 

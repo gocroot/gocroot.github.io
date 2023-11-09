@@ -26,3 +26,37 @@ git tag v0.0.3                          	#set tag version
 git push origin --tags                  	#push tag version to repo
 go list -m github.com/aiteung/presensi@v0.0.3   #publish to pkg dev, replace ORG/URL with your repo URL
 ```
+
+## Deploy Binary on Web Hosting
+Create run.sh and stop.sh file. run.sh file  
+```sh
+#!/bin/bash
+
+if ! pgrep -f 'binary_app'
+then
+    nohup /home/file_path/binary_app && echo "baru running" > ./out_test.txt
+else
+    echo "udah di-run" > ./out_test.txt
+fi
+```
+stop.sh file  
+```sh
+#!/bin/bash
+
+if pgrep -f 'binary_app'
+then
+    pgrep -f 'binary_app' | xargs kill &&  echo "baru stop" > ./out_test.txt
+else
+    echo "udah di-stop" > ./out.txt
+fi
+```
+.htaccess file  
+```config
+Options +FollowSymLinks -Indexes
+IndexIgnore *
+DirectoryIndex
+<IfModule mod_rewrite.c>
+RewriteEngine on
+RewriteRule ^(.*)$ http://127.0.0.1:8080/api/$1 [P]
+</IfModule>
+```

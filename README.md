@@ -28,7 +28,7 @@ go list -m github.com/aiteung/presensi@v0.0.3   #publish to pkg dev, replace ORG
 ```
 
 ## Deploy Binary on Web Hosting
-Create run.sh and stop.sh file. run.sh file  
+buat file run.sh dan stop.sh file. run.sh file  
 ```sh
 #!/bin/bash
 
@@ -62,7 +62,23 @@ RewriteRule ^(.*)$ http://127.0.0.1:8080/api/$1 [P]
 ```
 ## Deploy Binary to VPS
 ### build
-if the package init name api  
+sebelum membuat script deply.bat kita pastikan dulu ssh kita tanpa password. Sehingga tidak perlu memasukkan password
+setiap kali menjalankan script deploy.  
+Using git bash create yout key, you dont have to do this if you already have a key
+```sh
+ssh-keygen -t rsa -b 4096 -C "rolly@awang.ga"
+```
+
+send key to the server
+```sh
+cat ~/.ssh/id_rsa.pub | ssh usernya@hostnya.com 'cat >> .ssh/authorized_keys'
+```
+ssh into server and change permission
+```sh
+chmod 700 .ssh; chmod 640 .ssh/authorized_keys
+```
+
+script deploy jika pada saat go mod init bernama api  
 ```sh
 $env:GOOS = 'linux'
 $env:CGO_ENABLED = '1'

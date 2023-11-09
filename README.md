@@ -61,7 +61,7 @@ RewriteRule ^(.*)$ http://127.0.0.1:8080/api/$1 [P]
 </IfModule>
 ```
 ## Deploy Binary to VPS
-### build
+### SSH tanpa password
 sebelum membuat script deply.bat kita pastikan dulu ssh kita tanpa password. Sehingga tidak perlu memasukkan password
 setiap kali menjalankan script deploy.  
 Using git bash create yout key, you dont have to do this if you already have a key
@@ -77,7 +77,7 @@ ssh into server and change permission
 ```sh
 chmod 700 .ssh; chmod 640 .ssh/authorized_keys
 ```
-
+### Script Deploy
 script deploy jika pada saat go mod init bernama api  
 ```sh
 $env:GOOS = 'linux'

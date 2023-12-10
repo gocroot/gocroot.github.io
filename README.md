@@ -16,7 +16,7 @@ type Example struct {
 Get JSON Body
 ```go
 var userreq models.UserReq
-	err := c.BodyParser(&userreq)
+err := c.BodyParser(&userreq)
 ```
 
 Get Header From Client Request

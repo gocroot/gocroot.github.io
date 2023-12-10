@@ -12,6 +12,23 @@ type Example struct {
 3. url : use as variabel name in url query, like : https://domain.com/?messages=oaus098ji
 4. reqHeader : use as HTTP header name in Request, like Authorization, Token, Content-Type, Origin
 
+## Controller Cather
+Get JSON Body
+```go
+var userreq models.UserReq
+	err := c.BodyParser(&userreq)
+```
+
+Get Header From Client Request
+```go
+var h models.Header
+err := c.ReqHeaderParser(&h)
+```
+
+Get URL Qery e.g: localhost/?kueri=bagong
+```go
+queryValue := c.Query("kueri")
+```
 
 ## Publish Package
 Commit all of your work.  

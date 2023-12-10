@@ -3,8 +3,8 @@
 ## Type Declaration
 ```go
 type Example struct {
-	ID        primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty" url:"_id,omitempty" reqHeader:"token"`
-	Messages  string             `json:"messages" bson:"messages" url:"messages" reqHeader:"token"`
+	ID        primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty" query:"id" url:"_id,omitempty" reqHeader:"token"`
+	Messages  string             `json:"messages" bson:"messages" query:"messages" url:"messages" reqHeader:"token"`
 }
 ```
 1. json : for content/type json in RestFul
@@ -27,7 +27,8 @@ err := c.ReqHeaderParser(&h)
 
 Get URL Qery e.g: localhost/?kueri=bagong
 ```go
-queryValue := c.Query("kueri")
+p := new(Example)
+err := c.QueryParser(p)
 ```
 
 ## Publish Package

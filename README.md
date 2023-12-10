@@ -9,8 +9,9 @@ type Example struct {
 ```
 1. json : for content/type json in RestFul
 2. bson : using in mongoDB as name of field
-3. url : use as variabel name in url query, like : https://domain.com/?messages=oaus098ji
-4. reqHeader : use as HTTP header name in Request, like Authorization, Token, Content-Type, Origin
+3. query : use as variabel name in url query, like : https://domain.com/?messages=oaus098ji
+4. url : use as variabel name for generate url query, like : https://domain.com/?messages=oaus098ji
+5. reqHeader : use as HTTP header name in Request, like Authorization, Token, Content-Type, Origin
 
 ## Controller Cather
 Get JSON Body

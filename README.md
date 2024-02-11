@@ -26,7 +26,12 @@ var h models.Header
 err := c.ReqHeaderParser(&h)
 ```
 
-Get URL Qery e.g: localhost/?kueri=bagong
+Get URL Param e.g: localhost/:login
+```go
+login := c.Params("login")
+```
+
+Get URL Query e.g: localhost/?kueri=bagong
 ```go
 p := new(Example)
 err := c.QueryParser(p)

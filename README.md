@@ -36,6 +36,10 @@ Get URL Query e.g: localhost/?kueri=bagong
 p := new(Example)
 err := c.QueryParser(p)
 ```
+Get File Upload by FormFile using *image* as parameter name
+```go
+file, err := ctx.FormFile("image")
+```
 
 ## Publish Package
 Commit all of your work.  

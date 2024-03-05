@@ -1,5 +1,7 @@
 # Golang Cheat Sheet
 
+[Use our skeleton](https://github.com/gocroot/gocroot)
+
 ## Type Declaration
 ```go
 type Example struct {
@@ -13,7 +15,7 @@ type Example struct {
 4. url : use as variabel name for generate url query, like : https://domain.com/?messages=oaus098ji
 5. reqHeader : use as HTTP header name in Request, like Authorization, Token, Content-Type, Origin
 
-## Controller Cather
+## Controller Catcher
 Get JSON Body
 ```go
 var userreq models.UserReq
@@ -40,6 +42,28 @@ err := c.QueryParser(p)
 Get File Upload by FormFile using *image* as parameter name
 ```go
 file, err := ctx.FormFile("image")
+```
+## Controller return
+
+return status and json
+```go
+return ctx.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "id tidak valid"})
+```
+
+```go
+return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+```
+
+```go
+return ctx.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "id tidak valid"})
+```
+
+```go
+return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Tidak ada data laporan ditemukan"})
+```
+
+```go
+return ctx.Status(fiber.StatusOK).JSON(fiber.Map{"error": errstr, "update": res.ModifiedCount, "wa": resp.Response})
 ```
 
 ## Publish Package

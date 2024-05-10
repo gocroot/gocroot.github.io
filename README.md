@@ -1,5 +1,14 @@
 # Golang Cheat Sheet
 
+## Pre-requisite
+
+Please learn first :
+1. Mongodb
+2. Golang Struct
+3. Golang function
+
+[Start Your Journey](https://gocroot.github.io/alwaysdata/)
+
 [Use our skeleton](https://github.com/gocroot/gocroot)
 
 ## Type Declaration

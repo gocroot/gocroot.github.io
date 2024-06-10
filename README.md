@@ -22,7 +22,7 @@ type Example struct {
 2. bson : using in mongoDB as name of field
 3. query : use as variabel name in url query, like : https://domain.com/?messages=oaus098ji
 4. url : use as variabel name for generate url query, like : https://domain.com/?messages=oaus098ji
-5. reqHeader : use as HTTP header name in Request, like Authorization, Token, Content-Type, Origin
+5. reqHeader : use as HTTP header name in Request, like Authorization, Token, Content-Type, Origin, Login
 
 ## Controller Catcher
 Get JSON Body
@@ -74,7 +74,15 @@ return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Tidak ada data
 ```go
 return ctx.Status(fiber.StatusOK).JSON(fiber.Map{"error": errstr, "update": res.ModifiedCount, "wa": resp.Response})
 ```
-
+## Mongodb
+Primitive.ObjectID to string
+```go
+objectId, err := primitive.ObjectIDFromHex(rating.ID)
+```
+string to primitive.ObjectID
+```go
+id:=objectId.Hex()
+```
 ## Publish Package
 Commit all of your work.  
 Set ENV variabel in your OS : GOPROXY=proxy.golang.org  

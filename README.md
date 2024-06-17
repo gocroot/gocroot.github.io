@@ -59,7 +59,7 @@ Get URL Query using Example struct above e.g: localhost/?id=bagong
 
 Get File Upload by FormFile using *image* as parameter name
 ```go
-file, err := ctx.FormFile("image")
+_, header, err := r.FormFile("image")
 ```
 
 ### Controller return

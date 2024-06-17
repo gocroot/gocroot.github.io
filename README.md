@@ -24,35 +24,43 @@ type Example struct {
 4. url : use as variabel name for generate url query, like : https://domain.com/?messages=oaus098ji
 5. reqHeader : use as HTTP header name in Request, like Authorization, Token, Content-Type, Origin, Login
 
-## Controller Catcher
+## Go Fiber Controller
+This is Go Fiber Controller:
+```go
+func Homepage(ctx *fiber.Ctx) error {
+	//Controller Catcher
+	//Controller return
+}
+```
+### Controller Catcher
 Get JSON Body
 ```go
 var userreq models.UserReq
-err := c.BodyParser(&userreq)
+err := ctx.BodyParser(&userreq)
 ```
 
 Get Header From Client Request
 ```go
 var h models.Header
-err := c.ReqHeaderParser(&h)
+err := ctx.ReqHeaderParser(&h)
 ```
 
 Get URL Param e.g: localhost/:login
 ```go
-login := c.Params("login")
+login := ctx.Params("login")
 ```
 
 Get URL Query e.g: localhost/?kueri=bagong
 ```go
 p := new(Example)
-err := c.QueryParser(p)
+err := ctx.QueryParser(p)
 ```
 
 Get File Upload by FormFile using *image* as parameter name
 ```go
 file, err := ctx.FormFile("image")
 ```
-## Controller return
+### Controller return
 
 return status and json
 ```go

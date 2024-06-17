@@ -9,7 +9,7 @@ Please learn first :
 
 [Go Fiber Based](https://gocroot.github.io/alwaysdata/)
 
-[Net HTTP Based]([https://github.com/gocroot/gocroot](https://github.com/domyid/domyikado))
+[Net HTTP Based](https://github.com/domyid/domyikado)
 
 ## Type Declaration
 ```go

@@ -24,11 +24,56 @@ type Example struct {
 4. url : use as variabel name for generate url query, like : https://domain.com/?messages=oaus098ji
 5. reqHeader : use as HTTP header name in Request, like Authorization, Token, Content-Type, Origin, Login
 
+## Net HTTP Controller
+This is net http controller:
+```go
+func Homepage(w http.ResponseWriter, r *http.Request) {
+	//Controller Catcher
+		//your logic
+	//Controller return
+}
+```
+### Controller Cather
+Get JSON Body
+```go
+var tasklists []report.TaskList
+err := json.NewDecoder(r.Body).Decode(&tasklists)
+```
+
+Get Header From Client Request
+```go
+secret = r.Header.Get("secret")
+```
+
+Get URL Param e.g: localhost/:login
+```go
+login := at.GetParam(r)
+//or
+login := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
+```
+
+Get URL Query using Example struct above e.g: localhost/?id=bagong
+```go
+
+```
+
+Get File Upload by FormFile using *image* as parameter name
+```go
+file, err := ctx.FormFile("image")
+```
+
+### Controller return
+Using Example struct above.
+```go
+at.WriteJSON(w, http.StatusOK, Example)
+```
+
 ## Go Fiber Controller
 This is Go Fiber Controller:
 ```go
 func Homepage(ctx *fiber.Ctx) error {
 	//Controller Catcher
+		//your logic
 	//Controller return
 }
 ```
@@ -50,7 +95,7 @@ Get URL Param e.g: localhost/:login
 login := ctx.Params("login")
 ```
 
-Get URL Query e.g: localhost/?kueri=bagong
+Get URL Query using Example struct above e.g: localhost/?id=bagong
 ```go
 p := new(Example)
 err := ctx.QueryParser(p)

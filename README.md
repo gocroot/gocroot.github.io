@@ -7,9 +7,9 @@ Please learn first :
 2. Golang Struct
 3. Golang function
 
-[Start Your Journey](https://gocroot.github.io/alwaysdata/)
+[Go Fiber Based](https://gocroot.github.io/alwaysdata/)
 
-[Use our skeleton](https://github.com/gocroot/gocroot)
+[Net HTTP Based]([https://github.com/gocroot/gocroot](https://github.com/domyid/domyikado))
 
 ## Type Declaration
 ```go

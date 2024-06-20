@@ -54,7 +54,7 @@ login := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
 
 Get URL Query using Example struct above e.g: localhost/?id=bagong
 ```go
-
+id := r.URL.Query().Get("id")
 ```
 
 Get File Upload by FormFile using *image* as parameter name

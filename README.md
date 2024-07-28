@@ -128,13 +128,16 @@ return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Tidak ada data
 return ctx.Status(fiber.StatusOK).JSON(fiber.Map{"error": errstr, "update": res.ModifiedCount, "wa": resp.Response})
 ```
 ## Mongodb
-Primitive.ObjectID to string
-```go
-objectId, err := primitive.ObjectIDFromHex(rating.ID)
-```
 string to primitive.ObjectID
+
 ```go
-id:=objectId.Hex()
+objectId, err := primitive.ObjectIDFromHex(strid)
+```
+
+Primitive.ObjectID to string
+
+```go
+strid:=objectId.Hex()
 ```
 ## Publish Package
 Commit all of your work.  

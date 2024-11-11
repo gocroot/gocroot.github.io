@@ -4,28 +4,31 @@ Backend framework to make sure on low cost deployment
 ## Pre-requisite
 
 Please learn first :
-1. Mongodb
+1. Mongodb for database
 2. Golang Struct
 3. Golang function
 
-[Go Fiber Based](https://gocroot.github.io/alwaysdata/)
-
-[Net HTTP Based](https://github.com/domyid/domyikado)
-
 ## Type Declaration
+In Golang, every piece of data we use acts as a struct. 
+
 ```go
 type Example struct {
 	ID        primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty" query:"id" url:"_id,omitempty" reqHeader:"token"`
 	Messages  string             `json:"messages" bson:"messages" query:"messages" url:"messages" reqHeader:"token"`
 }
 ```
-1. json : for content/type json in RestFul
-2. bson : using in mongoDB as name of field
-3. query : use as variabel name in url query, like : https://domain.com/?messages=oaus098ji
-4. url : use as variabel name for generate url query, like : https://domain.com/?messages=oaus098ji
-5. reqHeader : use as HTTP header name in Request, like Authorization, Token, Content-Type, Origin, Login
+
+Inside of backtick, is the type of data used by. 
+1. json: for content/type json in RestFul
+2. bson: using as the name of a field in MongoDB
+3. query: use as variable name in URL query, like: https://domain.com/?messages=oaus098ji
+4. url: use as the variable name for generating URL query, like: https://domain.com/?messages=oaus098ji
+5. reqHeader: use as HTTP header name in Request, like Authorization, Token, Content-Type, Origin, Login
 
 ## Net HTTP Controller
+
+[Net HTTP Based Example](https://github.com/domyid/domyikado) compatible with Google Cloud Function.
+
 This is net http controller:
 ```go
 func Homepage(w http.ResponseWriter, r *http.Request) {
@@ -70,15 +73,19 @@ at.WriteJSON(w, http.StatusOK, Example)
 ```
 
 ## Go Fiber Controller
+
+[Go Fiber Based Example](https://gocroot.github.io/alwaysdata/)
+
+
 This is Go Fiber Controller:
 ```go
 func Homepage(ctx *fiber.Ctx) error {
-	//Controller Catcher
-		//your logic
-	//Controller return
+	//Controller Catcher section
+		//your logic section
+	//Controller return section
 }
 ```
-### Controller Catcher
+### Controller Catcher Section
 Get JSON Body
 ```go
 var userreq models.UserReq
@@ -106,7 +113,7 @@ Get File Upload by FormFile using *image* as parameter name
 ```go
 file, err := ctx.FormFile("image")
 ```
-### Controller return
+### Controller return section
 
 return status and json
 ```go
@@ -128,6 +135,7 @@ return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Tidak ada data
 ```go
 return ctx.Status(fiber.StatusOK).JSON(fiber.Map{"error": errstr, "update": res.ModifiedCount, "wa": resp.Response})
 ```
+
 ## Mongodb
 string to primitive.ObjectID
 
@@ -140,6 +148,7 @@ Primitive.ObjectID to string
 ```go
 strid:=objectId.Hex()
 ```
+
 ## Publish Package
 Commit all of your work.  
 Set ENV variabel in your OS : GOPROXY=proxy.golang.org  

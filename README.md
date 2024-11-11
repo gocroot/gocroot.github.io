@@ -153,6 +153,76 @@ git push origin --tags                  	#push tag version to repo
 go list -m github.com/aiteung/presensi@v0.0.3   #publish to pkg dev, replace ORG/URL with your repo URL
 ```
 
+## Testing and Code Coverage
+To measure code coverage in Go, you can use the built-in `go test` command, which has a `-cover` option. Here’s a basic example:
+
+### 1. Create a Simple Go Program
+Let’s create a simple program with a function to test:
+
+**`main.go`**
+```go
+package main
+
+import "fmt"
+
+// Sum returns the sum of two integers.
+func Sum(a, b int) int {
+    return a + b
+}
+
+func main() {
+    fmt.Println("Sum of 2 and 3 is:", Sum(2, 3))
+}
+```
+
+### 2. Write a Test File
+Now, create a test file for this function.
+
+**`main_test.go`**
+```go
+package main
+
+import "testing"
+
+func TestSum(t *testing.T) {
+    result := Sum(2, 3)
+    expected := 5
+    if result != expected {
+        t.Errorf("Sum(2, 3) = %d; want %d", result, expected)
+    }
+}
+```
+
+### 3. Run Tests with Coverage
+Run the test with code coverage using the `-cover` flag:
+
+```bash
+go test -cover
+```
+
+This will output the coverage percentage, such as:
+
+```
+PASS
+coverage: 100.0% of statements
+ok      yourmodule      0.001s
+```
+
+### 4. Generate a Detailed Coverage Report
+You can generate a more detailed report with the `-coverprofile` flag:
+
+```bash
+go test -coverprofile=coverage.out
+```
+
+Then, to view it in a human-readable format, use:
+
+```bash
+go tool cover -html=coverage.out
+```
+
+This opens a browser window showing detailed coverage information, highlighting which lines were executed during the tests.
+
 ## Deploy Go
 
 Go to [deploy page](./deploy/)

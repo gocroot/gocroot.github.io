@@ -1,12 +1,12 @@
 # Golang for Green Computing and Cloud Optimation
 Backend framework to make sure on low cost deployment
 
-## Pre-requisite
+## GoCroot Mode
 
-Please learn first :
-1. Mongodb for database
-2. Golang Struct
-3. Golang function
+We have two modes for production mode :
+1. Net HTTP Based (compatible with Google Cloud Function) **RECOMMENDED**
+2. Fiber Based (compatible with fly.io and alwaysdata)
+
 
 ## Type Declaration
 In Golang, every piece of data we use acts as a struct. 
@@ -25,8 +25,22 @@ Inside of backtick, is the type of data used by.
 4. url: use as the variable name for generating URL query, like: https://domain.com/?messages=oaus098ji
 5. reqHeader: use as HTTP header name in Request, like Authorization, Token, Content-Type, Origin, Login
 
+## Net HTTP Routes
+
+Routes use as URL Access. This is our routes standar file in route folder. GoCroot using simple switch case standar function.
+
+```go
+//get url param
+case method == "POST" && at.URLParam(path, "/webhook/nomor/:nomorwa"):
+		controller.PostInboxNomor(w, r)
+//without url param
+case method == "GET" && path == "/data/phone/all":
+		controller.GetBotList(w, r)
+```
+
 ## Net HTTP Controller
 
+Controller use as API service. This is our controller standar function in controller folder. 
 [Net HTTP Based Example](https://github.com/domyid/domyikado) compatible with Google Cloud Function.
 
 This is net http controller:
@@ -137,6 +151,16 @@ return ctx.Status(fiber.StatusOK).JSON(fiber.Map{"error": errstr, "update": res.
 ```
 
 ## Mongodb
+
+In case you need to insert log into your mongoDB without struct
+```go
+document := bson.D{
+    {Key: "username", Value: "user1"},
+    {Key: "createdAt", Value: time.Now()},
+}
+```
+
+### ObjectID
 string to primitive.ObjectID
 
 ```go
@@ -147,6 +171,33 @@ Primitive.ObjectID to string
 
 ```go
 strid:=objectId.Hex()
+```
+
+### TTL Collection
+
+Insert document with createdAt column
+```json
+{
+  "_id": {
+    "$oid": "60c72b2f4f1a4e3a7c8b4567"
+  },
+  "username": "user1",
+  "createdAt": {
+    "$date": "2024-06-09T00:00:00Z"
+  }
+}
+```
+
+Create Index  
+![image](https://github.com/user-attachments/assets/e394879e-d208-4f31-adbc-020710f78e72)  
+
+Create struct
+```go
+type Document struct {
+    ID        string    `bson:"_id,omitempty"`
+    UserID    string    `bson:"userid"`
+    CreatedAt time.Time `bson:"createdAt"`
+}
 ```
 
 ## Publish Package

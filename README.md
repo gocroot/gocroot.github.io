@@ -25,6 +25,13 @@ Inside of backtick, is the type of data used by.
 4. url: use as the variable name for generating URL query, like: https://domain.com/?messages=oaus098ji
 5. reqHeader: use as HTTP header name in Request, like Authorization, Token, Content-Type, Origin, Login
 
+You might declare struct on the fly
+```go
+var request struct {
+   Token string `json:"token"`
+}
+```
+
 ## Net HTTP Routes
 
 Routes use as URL Access. This is our routes standar file in route folder. GoCroot using simple switch case standar function.
@@ -60,7 +67,7 @@ err := json.NewDecoder(r.Body).Decode(&tasklists)
 
 Get Header From Client Request
 ```go
-secret = r.Header.Get("secret")
+secret = r.Header.Get("Login")
 ```
 
 Get URL Param e.g: localhost/:login
@@ -78,6 +85,13 @@ id := r.URL.Query().Get("id")
 Get File Upload by FormFile using *image* as parameter name
 ```go
 _, header, err := r.FormFile("image")
+```
+
+### Controller Logic
+Decode paseto token and get user data by phonenumber in database
+```go
+payload, err := watoken.Decode(config.PublicKeyWhatsAuth, at.GetLoginFromHeader(req))
+docuser, err := atdb.GetOneDoc[model.Userdomyikado](config.Mongoconn, "user", primitive.M{"phonenumber": payload.Id})
 ```
 
 ### Controller return

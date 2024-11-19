@@ -1,5 +1,6 @@
-# Golang for Green Computing and Cloud Optimation
-Backend framework to make sure on low cost deployment
+# GoCroot: Greatly Optimized Cloud Resource Operation and Orchestration Transformer | Unlock the Full Potential of Cost-Effective Backend Infrastructure in the Cloud
+
+Take your cloud infrastructure to the next level with GoCroot. Designed for businesses and developers looking to achieve maximum performance while minimizing costs, GoCroot offers an ultra-efficient solution for backend operations. Harness the power of optimized cloud resource management and seamless orchestration, all while maintaining a low carbon footprint. Whether scaling up or simplifying your cloud architecture, GoCroot empowers you to streamline operations, reduce overhead, and improve reliability. Ready to scale with efficiency? Try GoCroot today!
 
 ## GoCroot Mode
 

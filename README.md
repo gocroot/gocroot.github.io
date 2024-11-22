@@ -89,6 +89,11 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
   ```go
   login := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
   ```
+- Decode WhatsAuth Token to PhoneNumber and get Document by Phonenumber in MongoDB:
+  ```go
+  payload, err := watoken.Decode(config.PublicKeyWhatsAuth, at.GetLoginFromHeader(req))
+  docuser, err := atdb.GetOneDoc[model.Userdomyikado](config.Mongoconn, "user", primitive.M{"phonenumber": payload.Id})
+  ```
 - Parse query parameter:  
   ```go
   id := r.URL.Query().Get("id")

@@ -13,12 +13,12 @@ Elevate your cloud operations with **GoCroot**, the ultimate solution for busine
 
 ## **GoCroot Modes**  
 We offer two production modes tailored for different platforms:  
-1. **Net HTTP-Based**  
-   - Fully compatible with **Google Cloud Functions**  
+1. [**Net HTTP-Based**](https://github.com/gocroot/gcp)  
+   - Fully compatible with [**Google Cloud Functions**](https://github.com/gocroot/gcp)  
    - **Recommended** for most use cases.  
 
 2. **Fiber-Based**  
-   - Ideal for platforms like **fly.io** and **alwaysdata**.  
+   - Ideal for platforms like [**fly.io**](https://github.com/gocroot/gocroot) and [**alwaysdata**](https://github.com/gocroot/alwaysdata).  
 
 ---
 

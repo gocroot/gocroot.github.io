@@ -76,6 +76,32 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
 ```
 
 #### Common Operations:  
+- Decode WhatsAuth Token to PhoneNumber and get Document by Phonenumber in MongoDB:
+  ```go
+  payload, err := watoken.Decode(config.PublicKeyWhatsAuth, at.GetLoginFromHeader(r))
+  Example, err := atdb.GetOneDoc[model.Userdomyikado](config.Mongoconn, "user", primitive.M{"phonenumber": payload.Id})
+  ```
+  Furthermore, to protect every endpoint with authentication.
+  ```go
+  var respn model.Response
+  payload, err := watoken.Decode(config.PublicKeyWhatsAuth, at.GetLoginFromHeader(req))
+  if err != nil {
+	respn.Status = "Error : Token Tidak Valid "
+	respn.Info = at.GetSecretFromHeader(req)
+	respn.Location = "Decode Token Error: " + at.GetLoginFromHeader(req)
+	respn.Response = err.Error()
+	at.WriteJSON(respw, http.StatusForbidden, respn)
+	return
+  }
+  docuser, err := atdb.GetOneDoc[model.Userdomyikado](config.Mongoconn, "user", primitive.M{"phonenumber": payload.Id})
+  if err != nil {
+  	respn.Status = "Error : User tidak ada di database "
+	respn.Info = payload.Alias
+	respn.Location = payload.Id
+	at.WriteJSON(respw, http.StatusNotFound, respn)
+	return
+  }
+  ```
 - Parse JSON body:  
   ```go
   var tasklists []report.TaskList
@@ -88,11 +114,6 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
 - Get URL parameter:  
   ```go
   login := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
-  ```
-- Decode WhatsAuth Token to PhoneNumber and get Document by Phonenumber in MongoDB:
-  ```go
-  payload, err := watoken.Decode(config.PublicKeyWhatsAuth, at.GetLoginFromHeader(r))
-  Example, err := atdb.GetOneDoc[model.Userdomyikado](config.Mongoconn, "user", primitive.M{"phonenumber": payload.Id})
   ```
 - Parse query parameter:  
   ```go

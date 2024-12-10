@@ -93,7 +93,7 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
 	at.WriteJSON(w, http.StatusForbidden, respn)
 	return
   }
-  docuser, err := atdb.GetOneDoc[model.Userdomyikado](config.Mongoconn, "user", primitive.M{"phonenumber": payload.Id})
+  _, err = atdb.GetOneDoc[model.Userdomyikado](config.Mongoconn, "user", primitive.M{"phonenumber": payload.Id})
   if err != nil {
   	respn.Status = "Error : User tidak ada di database "
 	respn.Info = payload.Alias

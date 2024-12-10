@@ -84,13 +84,13 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
   Furthermore, to protect every endpoint with authentication.
   ```go
   var respn model.Response
-  payload, err := watoken.Decode(config.PublicKeyWhatsAuth, at.GetLoginFromHeader(req))
+  payload, err := watoken.Decode(config.PublicKeyWhatsAuth, at.GetLoginFromHeader(r))
   if err != nil {
 	respn.Status = "Error : Token Tidak Valid "
-	respn.Info = at.GetSecretFromHeader(req)
-	respn.Location = "Decode Token Error: " + at.GetLoginFromHeader(req)
+	respn.Info = at.GetSecretFromHeader(r)
+	respn.Location = "Decode Token Error: " + at.GetLoginFromHeader(r)
 	respn.Response = err.Error()
-	at.WriteJSON(respw, http.StatusForbidden, respn)
+	at.WriteJSON(w, http.StatusForbidden, respn)
 	return
   }
   docuser, err := atdb.GetOneDoc[model.Userdomyikado](config.Mongoconn, "user", primitive.M{"phonenumber": payload.Id})
@@ -98,7 +98,7 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
   	respn.Status = "Error : User tidak ada di database "
 	respn.Info = payload.Alias
 	respn.Location = payload.Id
-	at.WriteJSON(respw, http.StatusNotFound, respn)
+	at.WriteJSON(w, http.StatusNotFound, respn)
 	return
   }
   ```

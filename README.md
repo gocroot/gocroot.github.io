@@ -120,6 +120,25 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
   //or
   id := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
   ```
+  Furthermore, with get data logic using mongoDB object ID
+  ```go
+	// get param
+	objectId, err := primitive.ObjectIDFromHex(at.GetParam(r))
+	if err != nil {
+		respn.Status = "Error : object ID tidak valid"
+		respn.Response = err.Error()
+		at.WriteJSON(w, http.StatusPreconditionFailed, respn)
+		return
+	}
+	//get database
+	datapelanggan, err := atdb.GetOneDoc[model.DataPelanggan](config.Mongoconn, "pelanggan", primitive.M{"_id": objectId})
+	if err != nil {
+		respn.Status = "Error : gagal input database"
+		respn.Response = err.Error()
+		at.WriteJSON(w, http.StatusExpectationFailed, respn)
+		return
+	}
+  ```
 - Parse query parameter:  
   ```go
   id := r.URL.Query().Get("id")

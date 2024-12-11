@@ -109,11 +109,16 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
   ```
 - Extract header:  
   ```go
-  secret := r.Header.Get("Login")
+  login := at.GetLoginFromHeader(r)
+  //or
+  secret := r.Header.Get("Secret")
   ```
-- Get URL parameter:  
+- Get URL parameter:
+  at.URLParam(path, "/data/pelanggan/one/:id")
   ```go
-  login := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
+  id:=at.GetParam(r)
+  //or
+  id := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
   ```
 - Parse query parameter:  
   ```go

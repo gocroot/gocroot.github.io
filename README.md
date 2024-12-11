@@ -113,7 +113,7 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
   //or
   secret := r.Header.Get("Secret")
   ```
-- Get URL parameter:
+- Get URL parameter:  
   at.URLParam(path, "/data/pelanggan/one/:id")
   ```go
   id:=at.GetParam(r)

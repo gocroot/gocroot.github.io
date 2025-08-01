@@ -7,12 +7,15 @@ Elevate your cloud operations with **GoCroot**, the ultimate solution for busine
 - **Efficient:** Simplify complex cloud architectures.  
 - **Reliable:** Enhance operational stability.  
 
-🚀 **Ready to scale efficiently? Try GoCroot today!**
+🚀 **Ready to scale efficiently? Try [GoCroot Core](https://github.com/gocroot/core) today!**
 
 ---
 
 ## **GoCroot Modes**  
-We offer two production modes tailored for different platforms:  
+
+[GoCroot Core](https://github.com/gocroot/core)
+
+Otherwise, we offer two production modes tailored for different platforms:  
 1. [**Net HTTP-Based**](https://github.com/gocroot/gcp)  
    - Fully compatible with [**Google Cloud Functions**](https://github.com/gocroot/gcp)  
    - **Recommended** for most use cases.  

@@ -454,6 +454,7 @@ See the [mgdb README](https://github.com/gocroot/mgdb) for all helpers.
 ## **Deployment**
 
 - **Google Cloud Run functions (recommended):** entry point `WebHook`, runtime `go127`. A ready-to-copy GitHub Actions workflow is in the [core README](https://github.com/gocroot/core#ci--cd-to-google-cloud-function). Check the [runtime schedule](https://docs.cloud.google.com/functions/docs/runtime-support) regularly, because older Go runtimes are deprecated.
+- **Cost tip:** each deploy builds a large image in Artifact Registry, while the free tier is only 0.5 GB. The core workflow deletes `gcf-artifacts` after every deploy to keep storage near zero. See the [free tier limits](https://cloud.google.com/free/docs/free-cloud-features#free-tier-usage-limits).
 - **Quick public URL from your machine:** `cloudflared tunnel --url 127.0.0.1:3000`.
 - **VPS or web hosting:** see the [deployment guide](./deploy/).
 

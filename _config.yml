@@ -13,6 +13,15 @@ plugins:
   - jekyll-sitemap
 
 defaults:
+  # gambar preview link (WhatsApp, Telegram, media sosial) untuk semua halaman
+  - scope:
+      path: ""
+    values:
+      image:
+        path: /og-image.png
+        width: 1200
+        height: 630
+        alt: "GoCroot: lightweight Go backend template on net/http"
   - scope:
       path: README.md
     values:

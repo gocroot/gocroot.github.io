@@ -1,0 +1,19 @@
+<link rel="icon" type="image/x-icon" href="{{ '/favicon.ico' | relative_url }}">
+{% if page.path contains ".md" %}<link rel="alternate" type="text/markdown" href="{{ page.path | absolute_url }}">
+{% endif %}<link rel="alternate" type="text/plain" title="llms.txt" href="{{ '/llms.txt' | absolute_url }}">
+{% if page.url == "/" %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "GoCroot Core",
+  "description": {{ site.description | jsonify }},
+  "url": {{ '/' | absolute_url | jsonify }},
+  "codeRepository": "https://github.com/gocroot/core",
+  "programmingLanguage": "Go",
+  "runtimePlatform": ["Google Cloud Run functions", "Linux", "Docker"],
+  "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+  "keywords": ["Go", "golang", "net/http", "backend template", "Cloud Run functions", "serverless", "PASETO", "MongoDB"]
+}
+</script>
+{% endif %}

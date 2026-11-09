@@ -1,5 +1,7 @@
 # Deploy Golang
 
+<!-- {% raw %} -->
+
 Semua cara di bawah memakai **GoCroot Core** yang sama. Untuk Google Cloud Run functions (paling hemat), lihat [panduan workflow di core](https://github.com/gocroot/core#ci--cd-to-google-cloud-function). Untuk VPS, web hosting, dan Docker, yang dijalankan adalah binary dari folder `run`:
 
 ```sh
@@ -513,3 +515,5 @@ jobs:
 Catatan:
 - `auto_stop_machines = "stop"` dan `min_machines_running = 0` mematikan mesin saat tidak ada request, jadi biaya hanya dihitung saat aktif. Gantinya ada cold start singkat.
 - Secret disimpan dengan `fly secrets set`, jadi tidak masuk ke image maupun repo.
+
+<!-- {% endraw %} -->

@@ -1,0 +1,30 @@
+# GoCroot
+
+> GoCroot is a lightweight Go backend template built only on the standard library `net/http`. Projects start from the GitHub template repository `gocroot/core`, then rename the Go module. The same code runs as a Google Cloud Run function (`gcf.go`, entry point `WebHook`) and as a static binary from `./run` on a VPS, web hosting, or a `scratch` Docker image.
+
+Key conventions for code written in a GoCroot project:
+
+- No web framework or third-party router. Routing is a `switch r.Method` then `switch r.URL.Path` in `routes/routes.go`; unknown paths go to `controller.NotFound`. Path parameters use `controller.PathParam(r.URL.Path, "/prefix/")` in the `default` branch.
+- Handlers are `func(w http.ResponseWriter, r *http.Request)`. Respond with `controller.WriteJSON(w, status, models.Response{...})` and read bodies with `controller.DecodeJSON(w, r, &dst)` (1 MiB limit). Never build JSON with `fmt.Sprintf`.
+- Configuration comes only from environment variables read in `config.SetEnv()`: `PRIVATEKEY`, `PUBLICKEY`, `MONGOSTRING`, `PORT` (default 3000), `IP`, `ALLOWED_ORIGINS`. Never log secret values.
+- Login tokens are PASETO v4.public via `github.com/whatsauth/watoken` (not JWT), sent in the `Token` header. Invalid or expired tokens get `401`.
+- MongoDB access uses `github.com/gocroot/mgdb`, connected once in `SetEnv()` and stored in `config.MongoDB`. Decode request bodies into typed structs before building filters (no raw `bson.M` from user input).
+- Do not `panic` or `log.Fatal` during init; store the error and return `503` from endpoints that need it.
+
+## Docs
+
+- [GoCroot guide (Markdown)](https://gocroot.if.co.id/README.md): quick start, project structure, routing, controllers, authentication, MongoDB, testing
+- [Deployment guide (Markdown, Indonesian)](https://gocroot.if.co.id/deploy/README.md): Cloud Run functions, VPS with systemd, web hosting, Docker `scratch` image, GitHub Actions CI/CD per hosting
+- [Core template README (Markdown, Indonesian)](https://raw.githubusercontent.com/gocroot/core/main/README.md): creating a project from the template, environment variables, Cloud Run functions workflow, database connection
+
+## Source
+
+- [gocroot/core](https://github.com/gocroot/core): the template every project starts from
+- [gocroot/mgdb](https://github.com/gocroot/mgdb): MongoDB helper (connect, CRUD, generic queries)
+- [gocroot/jsonapi](https://github.com/gocroot/jsonapi): JSON API HTTP client helper
+- [whatsauth/watoken](https://github.com/whatsauth/watoken): PASETO token encode/decode
+
+## Optional
+
+- [Website (HTML)](https://gocroot.if.co.id/)
+- [Deployment page (HTML)](https://gocroot.if.co.id/deploy/)

@@ -99,7 +99,7 @@ core/
 ├── gcf.go           # Cloud function entry point: functions.HTTP("WebHook", routes.HandleRoutes)
 ├── run/main.go      # Local server on config.Port (:3000)
 ├── config/
-│   ├── config.go    # SetEnv(): reads MONGOSTRING, PRIVATEKEY, PUBLICKEY
+│   ├── config.go    # SetEnv(): reads PORT, MONGOSTRING, PRIVATEKEY, PUBLICKEY, ALLOWED_ORIGINS
 │   └── cors.go      # Allowed origins and preflight handling
 ├── routes/routes.go # HandleRoutes: switch on method, then on path
 ├── controller/      # HTTP handlers
@@ -197,24 +197,31 @@ A controller is a standard `net/http` handler:
 
 ```go
 func GetHome(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "success", "message": "Welcome"})
-}
-
-// helper: set header, status code, then encode the body
-func writeJSON(w http.ResponseWriter, status int, body any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(body)
+	WriteJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Welcome"})
 }
 ```
 
-Use `json.NewEncoder` instead of building JSON with `fmt.Sprintf`, so values are escaped correctly.
+Core ships two helpers in `controller/controller.go`:
 
-A shared response struct keeps error messages consistent (add it to `models/`):
+```go
+// WriteJSON sets Content-Type, writes the status code, then encodes the body.
+func WriteJSON(w http.ResponseWriter, status int, body any)
+
+// DecodeJSON reads a JSON body into dst, limited to 1 MiB.
+func DecodeJSON(w http.ResponseWriter, r *http.Request, dst any) error
+```
+
+Use them instead of building JSON with `fmt.Sprintf`, so values are escaped correctly and oversized bodies are rejected.
+
+Core's `models.Response` has `status`, `message`, `token`, and `username`. For richer error details, extend it in `models/`:
 
 ```go
 type Response struct {
 	Status   string `json:"status"`
+	Message  string `json:"message"`
+	Token    string `json:"token,omitempty"`
+	Username string `json:"username,omitempty"`
+	// tambahan untuk detail error
 	Info     string `json:"info,omitempty"`
 	Location string `json:"location,omitempty"`
 	Response string `json:"response,omitempty"`
@@ -236,24 +243,24 @@ type Response struct {
   	respn.Status = "Error : Token Tidak Valid"
   	respn.Location = "Decode Token Error"
   	respn.Response = err.Error()
-  	writeJSON(w, http.StatusForbidden, respn)
+  	WriteJSON(w, http.StatusForbidden, respn)
   	return
   }
   _, err = mgdb.GetOneDoc[models.User](config.MongoDB, "user", bson.M{"phonenumber": userID})
   if err != nil {
   	respn.Status = "Error : User tidak ada di database"
   	respn.Location = userID
-  	writeJSON(w, http.StatusNotFound, respn)
+  	WriteJSON(w, http.StatusNotFound, respn)
   	return
   }
   ```
 - Parse JSON body:
   ```go
   var login models.LoginAuth
-  err := json.NewDecoder(r.Body).Decode(&login)
+  err := DecodeJSON(w, r, &login)
   // or a list
   var tasklists []models.TaskList
-  err = json.NewDecoder(r.Body).Decode(&tasklists)
+  err = DecodeJSON(w, r, &tasklists)
   ```
 - Extract header:
   ```go
@@ -274,7 +281,7 @@ type Response struct {
   if err != nil {
   	respn.Status = "Error : object ID tidak valid"
   	respn.Response = err.Error()
-  	writeJSON(w, http.StatusPreconditionFailed, respn)
+  	WriteJSON(w, http.StatusPreconditionFailed, respn)
   	return
   }
   // get database
@@ -282,10 +289,10 @@ type Response struct {
   if err != nil {
   	respn.Status = "Error : data tidak ditemukan"
   	respn.Response = err.Error()
-  	writeJSON(w, http.StatusExpectationFailed, respn)
+  	WriteJSON(w, http.StatusExpectationFailed, respn)
   	return
   }
-  writeJSON(w, http.StatusOK, datapelanggan)
+  WriteJSON(w, http.StatusOK, datapelanggan)
   ```
 - Parse query parameter (`/data?id=123`):
   ```go
@@ -298,7 +305,7 @@ type Response struct {
 
 **Return JSON Response:**
 ```go
-writeJSON(w, http.StatusOK, Example)
+WriteJSON(w, http.StatusOK, Example)
 ```
 
 ---
@@ -357,7 +364,7 @@ token, err := watoken.Encode(login.UserName, config.PrivateKey)
 // protected endpoint: validate the token
 userID, err := watoken.DecodeGetId(config.PublicKey, r.Header.Get("Token"))
 if err != nil {
-	writeJSON(w, http.StatusForbidden, map[string]string{"status": "Forbidden", "message": "invalid token"})
+	WriteJSON(w, http.StatusForbidden, map[string]string{"status": "Forbidden", "message": "invalid token"})
 	return
 }
 ```
@@ -391,6 +398,15 @@ func SetEnv() {
 ```
 
 > Make sure `MONGOSTRING` is set to a valid `mongodb://` or `mongodb+srv://` URI. An empty or malformed value can make the app crash at startup.
+>
+> Don't call `log.Fatal` or `panic` when the connection fails. On Cloud Functions that kills the container at startup and the deploy fails with *Container Healthcheck failed*. Keep the error and answer `503` from endpoints that need the database:
+>
+> ```go
+> if config.MongoErr != nil {
+> 	WriteJSON(w, http.StatusServiceUnavailable, models.Response{Status: "Error", Message: "Database unavailable"})
+> 	return
+> }
+> ```
 
 Then use the generic helpers in controllers:
 

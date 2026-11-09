@@ -19,11 +19,12 @@ ssh into server and change permission
 chmod 700 .ssh; chmod 640 .ssh/authorized_keys
 ```
 ### Script Deploy
-script deploy jika pada saat go mod init bernama api  
+script deploy (PowerShell) untuk proyek hasil clone GoCroot Core. Binary dibangun dari folder `run` dengan nama `api`:
 ```sh
 $env:GOOS = 'linux'
-$env:CGO_ENABLED = '1'
-go build
+$env:GOARCH = 'amd64'
+$env:CGO_ENABLED = '0'
+go build -o api ./run
 scp -P 123 api user@domain:/root/apinew
 ssh -p 123 user@domain chmod +x /root/apinew
 ssh -p 123 user@domain ls -l
@@ -76,10 +77,12 @@ IndexIgnore *
 DirectoryIndex
 <IfModule mod_rewrite.c>
 RewriteEngine on
-RewriteRule ^(.*)$ http://127.0.0.1:8080/api/$1 [P]
+RewriteRule ^(.*)$ http://127.0.0.1:3000/$1 [P]
 </IfModule>
 ```
 ## Deploy Binary to VPS
+
+GoCroot Core mendengarkan di port `:3000` (`config.Port`). Sesuaikan port di bawah jika kamu mengubahnya.
 
 ### disable not used services
 
@@ -92,17 +95,19 @@ systemctl disable xinetd
 ### Create Service
 
 ```sh
-vim /lib/systemd/system/api.service
+vim /etc/systemd/system/api.service
 ```
 
 ```conf
 [Unit]
 Description=API Server
+After=network-online.target
 
 [Service]
 Type=simple
 Restart=always
 RestartSec=10s
+EnvironmentFile=/root/api.env
 ExecStart=/root/api
 
 [Install]
@@ -110,16 +115,27 @@ WantedBy=multi-user.target
 ```
 
 ```sh
-systemctl enable api
-systemctl start api
-reboot
+systemctl daemon-reload
+systemctl enable --now api
+systemctl status api
 ```
 
 ### ENV
 
+Service systemd **tidak** membaca `/etc/environment`. Simpan env var di file yang dirujuk `EnvironmentFile=`:
+
 ```sh
-vim /etc/environment
+vim /root/api.env
+chmod 600 /root/api.env
 ```
+
+```conf
+MONGOSTRING=mongodb+srv://user:pass@cluster.example.net/mydatabase
+PRIVATEKEY=...
+PUBLICKEY=...
+```
+
+Setelah mengubah file ini, jalankan `systemctl restart api`.
 
 ### NGINX Conf
 
@@ -127,16 +143,16 @@ vim /etc/environment
 server {
     listen 443 ssl;
 
-    server_name api.wa.my.id;
+    server_name api.example.com;
 
-    ssl_certificate /etc/letsencrypt/live/api.wa.my.id/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.wa.my.id/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/api.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.example.com/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 	
 	client_max_body_size 999M;
     location / {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:3000;
         proxy_set_header X-Real-IP  $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;

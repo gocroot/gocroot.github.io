@@ -146,7 +146,9 @@ var request struct {
 
 ## **Routing**
 
-Routes live in `routes/routes.go` as a plain `switch`. CORS runs first and answers preflight requests:
+Routes live in `routes/routes.go` as a plain `switch` on method, then on path. It is the fastest option on Cloud Run functions (benchmarked against `http.ServeMux`) and needs no router dependency. CORS runs first and answers preflight requests.
+
+### Routes that ship with core
 
 ```go
 func HandleRoutes(w http.ResponseWriter, r *http.Request) {
@@ -159,37 +161,84 @@ func HandleRoutes(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/":
 			controller.GetHome(w, r)
-		case "/data/phone/all": // without URL parameter
-			controller.GetBotList(w, r)
+		case "/login":
+			controller.GetUserName(w, r)
 		default:
-			// with URL parameter: /data/user/{id}
-			if _, ok := controller.PathParam(r.URL.Path, "/data/user/"); ok {
-				controller.GetUserByID(w, r)
-				return
-			}
 			controller.NotFound(w, r)
 		}
+
 	case http.MethodPost:
 		switch r.URL.Path {
 		case "/login":
 			controller.Login(w, r)
 		default:
-			// with URL parameter: /webhook/nomor/{nomorwa}
-			if _, ok := controller.PathParam(r.URL.Path, "/webhook/nomor/"); ok {
-				controller.PostInboxNomor(w, r)
-				return
-			}
 			controller.NotFound(w, r)
 		}
+
 	default:
 		controller.MethodNotAllowed(w, r)
 	}
 }
 ```
 
-Static paths go in `case`, parameter routes go in `default` after them. `controller.PathParam(path, prefix)` returns the single path segment after `prefix` and `true`, or `false` if the path doesn't match, the segment is empty, or it contains another `/`. It runs in a few nanoseconds without allocating, so the same call is used to match the route here and to read the value in the controller.
+| Request | Response |
+|---|---|
+| `GET /` | `200` `{"status":"success","message":"Welcome"}` |
+| `POST /login` | `200` with `token` (demo login, needs `DEMO_USER`/`DEMO_PASSWORD`), `404` wrong credentials, `503` demo login off |
+| `GET /login` with header `Token` | `200` with `username`, `401` invalid or expired token |
+| `GET`/`POST` to an unknown path | `404` JSON |
+| Any other method (`PUT`, `DELETE`, `HEAD`, …) on any path | `405` JSON |
+| `OPTIONS` from an allowed origin | `204` CORS preflight |
 
-When you add a method (`PUT`, `DELETE`) or a custom request header, also add it to `Access-Control-Allow-Methods` / `Access-Control-Allow-Headers` in `config/cors.go`. Frontend domains go into `allowedOrigins` in the same file.
+### Adding routes
+
+1. **Static path:** add a `case` under the right method.
+2. **Path parameter** (`/data/user/{id}`): put it in `default`, after the static paths, using `controller.PathParam`.
+3. **New method** (`PUT`, `DELETE`): add a `case http.MethodPut:` block with its own `default: controller.NotFound(w, r)`. `PUT` and `DELETE` are already allowed for CORS. Any other method or custom header must be added to `Access-Control-Allow-Methods` / `Access-Control-Allow-Headers` in `config/cors.go`.
+
+```go
+	case http.MethodGet:
+		switch r.URL.Path {
+		case "/":
+			controller.GetHome(w, r)
+		case "/login":
+			controller.GetUserName(w, r)
+		case "/data/user/me": // static paths first, so "me" is never read as an id
+			controller.GetMyProfile(w, r)
+		default:
+			if _, ok := controller.PathParam(r.URL.Path, "/data/user/"); ok {
+				controller.GetUserByID(w, r) // /data/user/{id}
+				return
+			}
+			controller.NotFound(w, r)
+		}
+
+	case http.MethodPut:
+		if _, ok := controller.PathParam(r.URL.Path, "/data/user/"); ok {
+			controller.UpdateUser(w, r) // PUT /data/user/{id}
+			return
+		}
+		controller.NotFound(w, r)
+```
+
+Read the parameter in the controller with the **same prefix**, so routing and reading can never disagree:
+
+```go
+func GetUserByID(w http.ResponseWriter, r *http.Request) {
+	id, ok := PathParam(r.URL.Path, "/data/user/")
+	if !ok {
+		NotFound(w, r)
+		return
+	}
+	// ... look up id
+}
+```
+
+`controller.PathParam(path, prefix)` returns the single path segment after `prefix` and `true`, or `false` if the path doesn't start with `prefix`, the segment is empty, or it contains another `/` (so `/data/user/1/x` is a `404`). It runs in a few nanoseconds without allocating. For more than one value, use query parameters (`/data/order?user=1&status=paid`, read with `r.URL.Query().Get`) or a dedicated prefix per resource.
+
+### CORS origins
+
+Set the frontend domains with the `ALLOWED_ORIGINS` environment variable, comma separated, for example `https://app.example.com,https://admin.example.com`. Without it, the default list in `config/cors.go` is used. Requests without an `Origin` header (server-to-server, `curl`) are always processed, they just get no CORS headers.
 
 ---
 

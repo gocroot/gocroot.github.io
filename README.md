@@ -294,7 +294,7 @@ type Response struct {
   	respn.Status = "Error : Token Tidak Valid"
   	respn.Location = "Decode Token Error"
   	respn.Response = err.Error()
-  	WriteJSON(w, http.StatusForbidden, respn)
+  	WriteJSON(w, http.StatusUnauthorized, respn)
   	return
   }
   _, err = mgdb.GetOneDoc[models.User](config.MongoDB, "user", bson.M{"phonenumber": userID})
@@ -374,10 +374,24 @@ token, err := watoken.Encode(login.UserName, config.PrivateKey)
 // protected endpoint: validate the token
 userID, err := watoken.DecodeGetId(config.PublicKey, r.Header.Get("Token"))
 if err != nil {
-	WriteJSON(w, http.StatusForbidden, map[string]string{"status": "Forbidden", "message": "invalid token"})
+	WriteJSON(w, http.StatusUnauthorized, models.Response{Status: "Unauthorized", Message: "invalid or expired token"})
 	return
 }
 ```
+
+An invalid or expired token is answered with `401`, so the frontend knows the user must log in again.
+
+### Why PASETO, not JWT
+
+GoCroot uses [PASETO](https://paseto.io) v4.public (Ed25519) through `watoken`, not JWT:
+
+- **No `alg` header to tamper with.** A JWT tells the server which algorithm to verify with, and that design led to well-known attacks: `alg: none` tokens accepted without a signature, and RS256/HS256 confusion where the public key is used as an HMAC secret. A PASETO token has a fixed version and purpose (`v4.public`), so there is nothing for an attacker to choose.
+- **Cryptography is locked per version.** v4.public is always Ed25519. Programmers cannot pick a weak algorithm or misconfigure one.
+- **Verification without a central auth server.** Tokens are signed with `PRIVATEKEY` and checked with `PUBLICKEY`, so any service that holds the public key can verify a token on its own. This comes from asymmetric signing (JWT with RS256/EdDSA can do the same), and PASETO makes it the only option.
+
+Like any stateless token, a PASETO token cannot be revoked before it expires. Keep the lifetime short (`watoken.Encode` gives 2 hours). If you need forced logout, add a denylist instead of making tokens last longer.
+
+Keep `PRIVATEKEY` only on the service that issues tokens (login). Services that only check tokens need `PUBLICKEY` alone.
 
 ---
 

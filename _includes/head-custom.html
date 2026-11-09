@@ -1,4 +1,5 @@
-<link rel="icon" type="image/x-icon" href="{{ '/favicon.ico' | relative_url }}">
+{% if page.url == "/404.html" %}<meta name="robots" content="noindex">
+{% endif %}<link rel="icon" type="image/x-icon" href="{{ '/favicon.ico' | relative_url }}">
 {% if page.path contains ".md" %}<link rel="alternate" type="text/markdown" href="{{ page.path | absolute_url }}">
 {% endif %}<link rel="alternate" type="text/plain" title="llms.txt" href="{{ '/llms.txt' | absolute_url }}">
 {% if page.url == "/" %}

@@ -1,5 +1,6 @@
 # Konfigurasi GitHub Pages (Jekyll). README.md menjadi halaman utama.
 title: GoCroot
+tagline: Go Backend Template for Cloud Run Functions, VPS and Docker
 description: >-
   GoCroot is a lightweight Go backend template built on net/http. One codebase
   runs as a Google Cloud Run function, a single binary on a VPS or web hosting,
@@ -25,7 +26,7 @@ defaults:
   - scope:
       path: README.md
     values:
-      title: "Go Backend Template for Cloud Run Functions, VPS and Docker"
+      title: GoCroot
   - scope:
       path: deploy/README.md
     values:

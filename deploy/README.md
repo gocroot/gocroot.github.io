@@ -205,3 +205,305 @@ Catatan:
 - `distroless/static` sudah berisi sertifikat CA yang dibutuhkan untuk koneksi TLS ke MongoDB Atlas. Jangan ganti ke `FROM scratch` kecuali sertifikat CA ikut disalin.
 - `docker stop` memicu graceful shutdown: request yang sedang berjalan diberi waktu selesai.
 - Simpan secret di env atau secret manager platform, jangan di dalam image atau `Dockerfile`.
+
+## CI/CD dengan GitHub Actions
+
+Semua workflow di bawah memakai binary dari `./run` milik GoCroot Core. Simpan file workflow di `.github/workflows/` repo proyekmu, dan isi secret di *Settings → Secrets and variables → Actions*. Setiap workflow menjalankan `go vet` dan `go test` dulu, jadi kode yang gagal test tidak akan di-deploy.
+
+### Pilih hosting
+
+Kondisi per November 2026. Free tier sering berubah, jadi cek lagi halaman resminya sebelum memilih.
+
+| Hosting | Biaya | Tidur saat sepi? | Cara deploy |
+|---|---|---|---|
+| [Google Cloud Run functions](https://cloud.google.com/free/docs/free-cloud-features#free-tier-usage-limits) | Gratis sampai 2 juta request/bulan (butuh billing account) | Ya, scale to zero (cold start singkat) | [Workflow di core](https://github.com/gocroot/core#ci--cd-to-google-cloud-function) |
+| [alwaysdata](https://www.alwaysdata.com/en/pricing/) | Paket gratis: 1 GB disk, 256 MB RAM, 1/4 CPU | Tidak | [Workflow alwaysdata](#deploy-ke-alwaysdata) |
+| [Render](https://render.com/docs/free) | Gratis 750 jam instance/bulan | Ya, setelah 15 menit tanpa request, bangun sekitar 1 menit | [Render](#deploy-ke-render) |
+| [Oracle Cloud Always Free](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm) atau VPS lain | Gratis: 2 VM AMD micro (1 GB RAM) atau Ampere setara 2 OCPU / 12 GB, egress 10 TB/bulan | Tidak (VM yang menganggur 7 hari bisa diambil kembali oleh Oracle) | [Workflow VPS](#deploy-ke-vps-oracle-cloud-always-free-dll) |
+| [Fly.io](https://docs.fly.io/about/pricing) | **Tidak gratis** untuk akun baru (trial $1 selama 7 hari), mesin 256 MB sekitar $2,19/bulan | Bisa (auto stop) | [Workflow Fly.io](#deploy-ke-flyio) |
+
+Tidak disarankan untuk proyek baru: **Koyeb** (paket gratis ditutup untuk pengguna baru sejak Februari 2026) dan **Railway** (hanya trial dan kredit kecil).
+
+### Deploy ke alwaysdata
+
+Persiapan di panel alwaysdata:
+
+1. **Web → Sites → Add a site**, pilih tipe **User program**.
+   - *Command*: `./api`
+   - *Working directory*: folder tempat binary diunggah, misalnya `www/myapi`
+   - *Environment*: `PRIVATEKEY=...`, `PUBLICKEY=...`, `MONGOSTRING=...` (satu per baris)
+   - Catat ID site (angka di judul halaman).
+   - alwaysdata memberi alamat `IP` dan `PORT` lewat environment. GoCroot Core membaca keduanya otomatis, jadi tidak perlu diisi.
+2. **Remote access → SSH**: aktifkan SSH, lalu tambahkan public key deploy ke `~/.ssh/authorized_keys` di akun alwaysdata. Buat pasangan key khusus untuk deploy dengan `ssh-keygen -t ed25519 -f deploy_key -N ""`.
+3. **Profile → Managing tokens**: buat API token untuk restart site.
+4. Isi secret GitHub: `SSH_HOST` (misalnya `ssh-namaakun.alwaysdata.net`), `SSH_USERNAME`, `SSH_KEY` (isi file `deploy_key`), `APP_DIR` (path lengkap folder site, misalnya `/home/namaakun/www/myapi`), `ALWAYSDATA_TOKEN`, `ALWAYSDATA_SITE_ID`.
+
+`.github/workflows/deploy-alwaysdata.yml`:
+
+```yaml
+name: Deploy alwaysdata
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-alwaysdata
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Test & build
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          go vet ./...
+          go test ./...
+          go build -trimpath -ldflags="-s -w" -o api.new ./run
+
+      - name: Upload binary
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          source: api.new
+          target: ${{ secrets.APP_DIR }}
+
+      - name: Swap binary
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          APP_DIR: ${{ secrets.APP_DIR }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: APP_DIR
+          script: |
+            set -e
+            cd "$APP_DIR"
+            chmod +x api.new
+            mv -f api.new api
+
+      - name: Restart site
+        env:
+          ALWAYSDATA_TOKEN: ${{ secrets.ALWAYSDATA_TOKEN }}
+          SITE_ID: ${{ secrets.ALWAYSDATA_SITE_ID }}
+        run: curl -fsS -X POST --user "${ALWAYSDATA_TOKEN}:" "https://api.alwaysdata.com/v1/site/${SITE_ID}/restart/"
+```
+
+Catatan:
+- Binary diunggah sebagai `api.new` lalu diganti dengan `mv`. Menimpa binary yang sedang berjalan secara langsung akan gagal (*Text file busy*).
+- Restart dipanggil dari runner GitHub, jadi API token tidak pernah dikirim ke server.
+- Jika memakai password SSH, ganti `key: ${{ secrets.SSH_KEY }}` dengan `password: ${{ secrets.SSH_PASSWORD }}`. SSH key lebih aman.
+
+### Deploy ke Render
+
+Render bisa deploy otomatis setiap ada push ke GitHub, jadi tidak perlu workflow GitHub Actions. Simpan `render.yaml` di root repo, lalu di dashboard Render pilih **New → Blueprint** dan hubungkan repo-nya:
+
+```yaml
+services:
+  - type: web
+    name: myapi
+    runtime: go
+    plan: free
+    region: singapore
+    buildCommand: go build -trimpath -ldflags="-s -w" -o app ./run
+    startCommand: ./app
+    healthCheckPath: /
+    envVars:
+      - key: PRIVATEKEY
+        sync: false
+      - key: PUBLICKEY
+        sync: false
+      - key: MONGOSTRING
+        sync: false
+```
+
+Catatan:
+- Render memberi `PORT` lewat environment, dan GoCroot Core membacanya otomatis.
+- `sync: false` membuat Render meminta nilai secret di dashboard, jadi nilainya tidak tersimpan di repo.
+- Paket gratis tidur setelah 15 menit tanpa request. Request pertama setelah itu menunggu sekitar 1 menit.
+
+### Deploy ke VPS (Oracle Cloud Always Free, dll.)
+
+Siapkan server sesuai bagian [Deploy Binary to VPS](#deploy-binary-to-vps) di atas: service systemd `api` dengan `ExecStart=/opt/myapi/api` dan `EnvironmentFile=/opt/myapi/api.env`. Lalu:
+
+1. Buat user khusus deploy yang memiliki folder `/opt/myapi`, dan izinkan hanya perintah restart service tanpa password (`sudo visudo -f /etc/sudoers.d/deploy`):
+   ```
+   deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart api
+   ```
+2. Tambahkan public key deploy ke `/home/deploy/.ssh/authorized_keys`.
+3. Isi secret GitHub: `SSH_HOST`, `SSH_USERNAME` (`deploy`), `SSH_KEY`.
+
+`.github/workflows/deploy-vps.yml`:
+
+```yaml
+name: Deploy VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Test & build
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: amd64 # ganti arm64 untuk VM Ampere (Oracle A1)
+        run: |
+          go vet ./...
+          go test ./...
+          go build -trimpath -ldflags="-s -w" -o api.new ./run
+
+      - name: Upload binary
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          source: api.new
+          target: /opt/myapi
+
+      - name: Swap binary & restart
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/myapi
+            chmod +x api.new
+            mv -f api.new api
+            sudo systemctl restart api
+            sleep 2
+            systemctl is-active api
+```
+
+Catatan:
+- `systemctl restart` memicu graceful shutdown di GoCroot Core, jadi request yang sedang berjalan diberi waktu selesai.
+- VM Oracle Ampere memakai CPU ARM, jadi build dengan `GOARCH: arm64`. VM AMD micro memakai `amd64`.
+
+### Deploy ke Fly.io
+
+Fly.io membangun image dari `Dockerfile` (lihat bagian [Deploy with Docker](#deploy-with-docker)). Simpan juga `fly.toml` di root repo:
+
+```toml
+app = "myapi"
+primary_region = "sin"
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "5s"
+    interval = "30s"
+    method = "GET"
+    path = "/"
+    timeout = "5s"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256
+```
+
+Persiapan sekali saja di komputer lokal:
+
+```sh
+fly launch --no-deploy          # membuat app sesuai fly.toml
+fly secrets set PRIVATEKEY=... PUBLICKEY=... MONGOSTRING=...
+fly tokens create deploy        # simpan hasilnya sebagai secret GitHub FLY_API_TOKEN
+```
+
+`.github/workflows/deploy-fly.yml`:
+
+```yaml
+name: Deploy Fly.io
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-fly
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Test
+        run: |
+          go vet ./...
+          go test ./...
+
+      - uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # 1.5
+
+      - name: Deploy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --remote-only
+```
+
+Catatan:
+- `auto_stop_machines = "stop"` dan `min_machines_running = 0` mematikan mesin saat tidak ada request, jadi biaya hanya dihitung saat aktif. Gantinya ada cold start singkat.
+- Secret disimpan dengan `fly secrets set`, jadi tidak masuk ke image maupun repo.

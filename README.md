@@ -484,6 +484,20 @@ See the [mgdb README](https://github.com/gocroot/mgdb) for all helpers.
 - **Quick public URL from your machine:** `cloudflared tunnel --url 127.0.0.1:3000`.
 - **VPS, web hosting, or Docker:** build the static binary from `./run`, see the [deployment guide](./deploy/).
 
+### Free and low-cost hosting
+
+Ready-to-copy GitHub Actions workflows (test → build → deploy on every push to `main`) are in the [deployment guide](./deploy/#cicd-dengan-github-actions). Status as of November 2026, free tiers change often:
+
+| Hosting | Cost | Sleeps when idle? | CI/CD |
+|---|---|---|---|
+| Google Cloud Run functions | Free up to 2M requests/month (billing account required) | Scales to zero | [core workflow](https://github.com/gocroot/core#ci--cd-to-google-cloud-function) |
+| alwaysdata | Free plan: 1 GB disk, 256 MB RAM, 1/4 CPU | No | [workflow](./deploy/#deploy-ke-alwaysdata) |
+| Render | Free 750 instance hours/month | After 15 min idle (~1 min to wake) | [render.yaml](./deploy/#deploy-ke-render) |
+| Oracle Cloud Always Free / any VPS | Free VMs (AMD micro 1 GB, or Ampere up to 2 OCPU / 12 GB) | No | [workflow](./deploy/#deploy-ke-vps-oracle-cloud-always-free-dll) |
+| Fly.io | Not free for new accounts, ~$2.19/month for 256 MB | Optional auto stop | [workflow](./deploy/#deploy-ke-flyio) |
+
+Core reads `PORT` and `IP` from the environment, so the same binary works on all of them without code changes.
+
 ### Publishing a module version
 
 Set up your Go environment:

@@ -73,6 +73,7 @@ Your code still calls `controller.Login`, `models.LoginAuth`, `config.PublicKey`
 
 ```sh
 export PRIVATEKEY=... PUBLICKEY=... MONGOSTRING=...
+export DEMO_USER=admin DEMO_PASSWORD=choose-a-password   # optional, enables the demo login
 go run ./run          # http://localhost:3000
 ```
 
@@ -84,11 +85,11 @@ Try it:
 
 ```sh
 curl http://localhost:3000/
-curl -X POST http://localhost:3000/login -d '{"username":"admin","password":"admin123"}'
+curl -X POST http://localhost:3000/login -d '{"username":"admin","password":"choose-a-password"}'
 curl http://localhost:3000/login -H "Token: <token from login>"
 ```
 
-> The `admin`/`admin123` login is a dummy for demonstration only. Replace it with a real user lookup before going to production.
+> The demo login is **off by default**: without `DEMO_USER` and `DEMO_PASSWORD` it answers `503`. Don't set them in production. Replace `controller.Login` with a real user lookup instead. An invalid or expired token answers `401`, so the frontend knows to ask the user to log in again.
 
 ---
 

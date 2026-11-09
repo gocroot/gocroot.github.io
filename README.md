@@ -29,7 +29,7 @@ Elevate your cloud operations with **GoCroot**, a lightweight Go backend skeleto
 | **Google Cloud Run functions** (recommended for cost) | `gcf.go` → `WebHook` | `gcloud functions deploy`, see [Deployment](#deployment) |
 | **VPS** | `run/main.go` | Static binary + systemd, see the [deployment guide](./deploy/#deploy-binary-to-vps) |
 | **Web hosting** (Apache `.htaccess` proxy) | `run/main.go` | Static binary, see the [deployment guide](./deploy/#deploy-binary-on-web-hosting) |
-| **Docker** | `run/main.go` | ~16 MB distroless image, see the [deployment guide](./deploy/#deploy-with-docker) |
+| **Docker** | `run/main.go` | ~10 MB `scratch` image (binary + CA certificates), see the [deployment guide](./deploy/#deploy-with-docker) |
 | **Local development** | `run/main.go` | `go run ./run` |
 
 The binary never includes the Cloud Functions framework. It reads `PORT` from the environment and shuts down gracefully on `SIGTERM` (`docker stop`, `systemctl restart`).

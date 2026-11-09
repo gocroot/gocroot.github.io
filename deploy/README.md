@@ -183,8 +183,12 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /api ./run
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM scratch
+# sertifikat CA wajib untuk koneksi TLS keluar (MongoDB Atlas, API HTTPS)
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /api /api
+# scratch tidak punya /etc/passwd, jadi user non-root ditulis sebagai UID
+USER 65532:65532
 ENV PORT=8080
 EXPOSE 8080
 ENTRYPOINT ["/api"]
@@ -201,8 +205,9 @@ curl http://localhost:8080/
 ```
 
 Catatan:
-- Image akhir sekitar 16 MB, berjalan sebagai user non-root, tanpa shell.
-- `distroless/static` sudah berisi sertifikat CA yang dibutuhkan untuk koneksi TLS ke MongoDB Atlas. Jangan ganti ke `FROM scratch` kecuali sertifikat CA ikut disalin.
+- Image akhir sekitar 10 MB: hanya binary dan sertifikat CA, tanpa shell, package manager, atau library lain. Berjalan sebagai user non-root (UID 65532).
+- **Jangan hapus baris `COPY` sertifikat CA.** Tanpa itu, koneksi ke MongoDB Atlas dan API HTTPS lain gagal dengan `x509: failed to verify certificate`.
+- Tidak perlu tzdata: core tidak memakai zona waktu, dan mgdb punya cadangan WIB.
 - `docker stop` memicu graceful shutdown: request yang sedang berjalan diberi waktu selesai.
 - Simpan secret di env atau secret manager platform, jangan di dalam image atau `Dockerfile`.
 

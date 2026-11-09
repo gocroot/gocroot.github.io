@@ -153,12 +153,17 @@ func HandleRoutes(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		switch {
-		case r.URL.Path == "/":
+		switch r.URL.Path {
+		case "/":
 			controller.GetHome(w, r)
-		case strings.HasPrefix(r.URL.Path, "/data/user/"):
-			controller.GetUserByID(w, r) // path parameter, see below
+		case "/data/phone/all": // without URL parameter
+			controller.GetBotList(w, r)
 		default:
+			// with URL parameter: /data/user/{id}
+			if _, ok := controller.PathParam(r.URL.Path, "/data/user/"); ok {
+				controller.GetUserByID(w, r)
+				return
+			}
 			controller.NotFound(w, r)
 		}
 	case http.MethodPost:
@@ -166,27 +171,20 @@ func HandleRoutes(w http.ResponseWriter, r *http.Request) {
 		case "/login":
 			controller.Login(w, r)
 		default:
+			// with URL parameter: /webhook/nomor/{nomorwa}
+			if _, ok := controller.PathParam(r.URL.Path, "/webhook/nomor/"); ok {
+				controller.PostInboxNomor(w, r)
+				return
+			}
 			controller.NotFound(w, r)
 		}
 	default:
-		controller.NotFound(w, r)
+		controller.MethodNotAllowed(w, r)
 	}
 }
 ```
 
-**With URL Parameter** (e.g. `/webhook/nomor/:nomorwa`)
-```go
-case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/webhook/nomor/"):
-	controller.PostInboxNomor(w, r)
-```
-
-**Without URL Parameter**
-```go
-case r.Method == http.MethodGet && r.URL.Path == "/data/phone/all":
-	controller.GetBotList(w, r)
-```
-
-These `case` lines go inside a tagless `switch { ... }` in `HandleRoutes`.
+Static paths go in `case`, parameter routes go in `default` after them. `controller.PathParam(path, prefix)` returns the single path segment after `prefix` and `true`, or `false` if the path doesn't match, the segment is empty, or it contains another `/`. It runs in a few nanoseconds without allocating, so the same call is used to match the route here and to read the value in the controller.
 
 When you add a method (`PUT`, `DELETE`) or a custom request header, also add it to `Access-Control-Allow-Methods` / `Access-Control-Allow-Headers` in `config/cors.go`. Frontend domains go into `allowedOrigins` in the same file.
 
@@ -269,11 +267,13 @@ type Response struct {
   //or
   secret := r.Header.Get("Secret")
   ```
-- Get URL parameter (route `/data/pelanggan/one/:id`):
+- Get URL parameter (route `/data/pelanggan/one/{id}`):
   ```go
-  id := strings.TrimPrefix(r.URL.Path, "/data/pelanggan/one/")
-  //or
-  id := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
+  id, ok := PathParam(r.URL.Path, "/data/pelanggan/one/")
+  if !ok {
+  	NotFound(w, r)
+  	return
+  }
   ```
   Furthermore, with get data logic using MongoDB object ID:
   ```go

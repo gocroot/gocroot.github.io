@@ -1,5 +1,13 @@
 # Deploy Golang
 
+Semua cara di bawah memakai **GoCroot Core** yang sama. Untuk Google Cloud Run functions (paling hemat), lihat [panduan workflow di core](https://github.com/gocroot/core#ci--cd-to-google-cloud-function). Untuk VPS, web hosting, dan Docker, yang dijalankan adalah binary dari folder `run`:
+
+```sh
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o api ./run
+```
+
+Binary ini statis (sekitar 7 MB), tidak membawa framework Cloud Functions, membaca port dari env `PORT` (default `3000`), dan berhenti dengan rapi saat menerima `SIGTERM`.
+
 ## Siapkan SSH dan Script Deploy
 
 ### SSH tanpa password
@@ -161,3 +169,39 @@ server {
     }
 }
 ```
+
+## Deploy with Docker
+
+Simpan sebagai `Dockerfile` di root proyek (hasil template core):
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM golang:1.27 AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /api ./run
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /api /api
+ENV PORT=8080
+EXPOSE 8080
+ENTRYPOINT ["/api"]
+```
+
+Build dan jalankan:
+
+```sh
+docker build -t myapi .
+docker run -d --name myapi -p 8080:8080 \
+  -e PRIVATEKEY=... -e PUBLICKEY=... -e MONGOSTRING=... \
+  myapi
+curl http://localhost:8080/
+```
+
+Catatan:
+- Image akhir sekitar 16 MB, berjalan sebagai user non-root, tanpa shell.
+- `distroless/static` sudah berisi sertifikat CA yang dibutuhkan untuk koneksi TLS ke MongoDB Atlas. Jangan ganti ke `FROM scratch` kecuali sertifikat CA ikut disalin.
+- `docker stop` memicu graceful shutdown: request yang sedang berjalan diberi waktu selesai.
+- Simpan secret di env atau secret manager platform, jangan di dalam image atau `Dockerfile`.

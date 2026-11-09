@@ -1,11 +1,11 @@
 # **GoCroot: Greatly Optimized Cloud Resource Operation and Orchestration Transformer**
 **Unlock the Full Potential of Cost-Effective Cloud Infrastructure**
 
-Elevate your cloud operations with **GoCroot**, a lightweight Go backend skeleton for businesses and developers seeking high performance and cost-efficiency. GoCroot is built on the Go standard library (`net/http`) and runs both as a local server and as a **Google Cloud Run function**, so you only pay when requests come in.
+Elevate your cloud operations with **GoCroot**, a lightweight Go backend skeleton for businesses and developers seeking high performance and cost-efficiency. GoCroot is built on the Go standard library (`net/http`), and **one codebase runs everywhere**: as a **Google Cloud Run function** (pay only when requests come in), as a single binary on a **VPS** or **web hosting**, or in a small **Docker** image.
 
 - **Eco-Friendly:** Operate with a low carbon footprint, scale to zero when idle.
 - **Efficient:** No web framework, just `net/http` and a few small helper packages.
-- **Reliable:** The same code runs locally and in the cloud.
+- **Portable:** The same code runs locally, serverless, on a VPS, and in containers.
 
 🚀 **Ready to scale efficiently? Start with [GoCroot Core](https://github.com/gocroot/core).**
 
@@ -15,20 +15,26 @@ Elevate your cloud operations with **GoCroot**, a lightweight Go backend skeleto
 
 | Repository | Purpose |
 |---|---|
-| [**gocroot/core**](https://github.com/gocroot/core) | **Recommended starting point.** Backend skeleton for Google Cloud Run functions and local development |
+| [**gocroot/core**](https://github.com/gocroot/core) | **The starting point for every project.** Backend skeleton for Cloud Run functions, VPS, web hosting, and Docker |
 | [gocroot/mgdb](https://github.com/gocroot/mgdb) | MongoDB helper (connect, CRUD, generic queries) |
 | [gocroot/jsonapi](https://github.com/gocroot/jsonapi) | JSON API HTTP helper |
 | [whatsauth/watoken](https://github.com/whatsauth/watoken) | PASETO token encode/decode, used for login |
 
-## **GoCroot Modes**
+## **One Core, Every Hosting**
 
-[**GoCroot Core**](https://github.com/gocroot/core) is the recommended mode for new projects. Other modes are still available for existing projects:
+[GoCroot Core](https://github.com/gocroot/core) is the only template you need. The same code has two entry points:
 
-1. [**Net HTTP-Based**](https://github.com/gocroot/gcp)
-   - Full application template for [**Google Cloud Functions**](https://github.com/gocroot/gcp), the predecessor of core.
+| Hosting | Entry point | How |
+|---|---|---|
+| **Google Cloud Run functions** (recommended for cost) | `gcf.go` → `WebHook` | `gcloud functions deploy`, see [Deployment](#deployment) |
+| **VPS** | `run/main.go` | Static binary + systemd, see the [deployment guide](./deploy/#deploy-binary-to-vps) |
+| **Web hosting** (Apache `.htaccess` proxy) | `run/main.go` | Static binary, see the [deployment guide](./deploy/#deploy-binary-on-web-hosting) |
+| **Docker** | `run/main.go` | ~16 MB distroless image, see the [deployment guide](./deploy/#deploy-with-docker) |
+| **Local development** | `run/main.go` | `go run ./run` |
 
-2. **Fiber-Based**
-   - For platforms like [**fly.io**](https://github.com/gocroot/gocroot) and [**alwaysdata**](https://github.com/gocroot/alwaysdata). See [Fiber Example](#fiber-example) below.
+The binary never includes the Cloud Functions framework. It reads `PORT` from the environment and shuts down gracefully on `SIGTERM` (`docker stop`, `systemctl restart`).
+
+> The older templates ([gocroot/gcp](https://github.com/gocroot/gcp) and the Fiber-based [gocroot/gocroot](https://github.com/gocroot/gocroot) / [gocroot/alwaysdata](https://github.com/gocroot/alwaysdata)) are no longer needed: core covers all of these platforms. Start new projects from core.
 
 ---
 
@@ -117,19 +123,16 @@ Data structures are Go `struct`s. Here's an example:
 
 ```go
 type Example struct {
-	ID       primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty" query:"id" url:"_id,omitempty" reqHeader:"token"`
-	Messages string             `json:"messages" bson:"messages" query:"messages" url:"messages" reqHeader:"token"`
+	ID       primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+	Messages string             `json:"messages" bson:"messages"`
 }
 ```
 
 ### Explanation of Tags:
-- `json`: Used for JSON payloads in REST APIs (core and Fiber).
-- `bson`: MongoDB field name (core and Fiber).
-- `query`: URL query parameters, e.g., `https://domain.com/?messages=example` (Fiber `QueryParser`).
-- `url`: URL generator for queries (Fiber).
-- `reqHeader`: HTTP headers, e.g., `Authorization`, `Token` (Fiber `ReqHeaderParser`).
+- `json`: field name in the JSON payload of the REST API.
+- `bson`: field name in MongoDB.
 
-With core (`net/http`) only `json` and `bson` are read automatically. Query parameters and headers are read manually, see [Common operations](#common-operations).
+Query parameters, path parameters, and headers are read in the controller, see [Common operations](#common-operations).
 
 Quick inline struct:
 
@@ -311,49 +314,6 @@ WriteJSON(w, http.StatusOK, Example)
 
 ---
 
-## **Fiber Example**
-
-For the Fiber-based mode ([gocroot/gocroot](https://github.com/gocroot/gocroot), [gocroot/alwaysdata](https://github.com/gocroot/alwaysdata)), not used in core:
-
-```go
-func Homepage(ctx *fiber.Ctx) error {
-	// Your logic here
-	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{"message": "success"})
-}
-```
-
-#### Common Operations:
-- Parse JSON body:
-  ```go
-  var userreq models.UserReq
-  err := ctx.BodyParser(&userreq)
-  ```
-- Extract header:
-  ```go
-  var h models.Header
-  err := ctx.ReqHeaderParser(&h)
-  ```
-- Get URL parameter:
-  ```go
-  login := ctx.Params("login")
-  ```
-- Parse query parameter:
-  ```go
-  p := new(Example)
-  err := ctx.QueryParser(p)
-  ```
-- Handle file upload:
-  ```go
-  file, err := ctx.FormFile("image")
-  ```
-
-**Return JSON Response:**
-```go
-return ctx.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success"})
-```
-
----
-
 ## **Authentication with Token**
 
 Login issues a PASETO token, and protected endpoints read it from the `Token` header:
@@ -473,7 +433,7 @@ See the [mgdb README](https://github.com/gocroot/mgdb) for all helpers.
 - **Google Cloud Run functions (recommended):** entry point `WebHook`, runtime `go127`. A ready-to-copy GitHub Actions workflow is in the [core README](https://github.com/gocroot/core#ci--cd-to-google-cloud-function). Check the [runtime schedule](https://docs.cloud.google.com/functions/docs/runtime-support) regularly, because older Go runtimes are deprecated.
 - **Cost tip:** each deploy builds a large image in Artifact Registry, while the free tier is only 0.5 GB. The core workflow deletes `gcf-artifacts` after every deploy to keep storage near zero. See the [free tier limits](https://cloud.google.com/free/docs/free-cloud-features#free-tier-usage-limits).
 - **Quick public URL from your machine:** `cloudflared tunnel --url 127.0.0.1:3000`.
-- **VPS or web hosting:** see the [deployment guide](./deploy/).
+- **VPS, web hosting, or Docker:** build the static binary from `./run`, see the [deployment guide](./deploy/).
 
 ### Publishing a module version
 

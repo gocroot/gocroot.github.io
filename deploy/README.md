@@ -181,7 +181,8 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /api ./run
+# timetzdata menanam data zona waktu ke binary (scratch tidak punya /usr/share/zoneinfo)
+RUN CGO_ENABLED=0 go build -tags timetzdata -trimpath -ldflags="-s -w" -o /api ./run
 
 FROM scratch
 # sertifikat CA wajib untuk koneksi TLS keluar (MongoDB Atlas, API HTTPS)
@@ -205,9 +206,9 @@ curl http://localhost:8080/
 ```
 
 Catatan:
-- Image akhir sekitar 10 MB: hanya binary dan sertifikat CA, tanpa shell, package manager, atau library lain. Berjalan sebagai user non-root (UID 65532).
+- Image akhir sekitar 10 MB: hanya binary (berisi data zona waktu) dan sertifikat CA, tanpa shell, package manager, atau library lain. Berjalan sebagai user non-root (UID 65532).
 - **Jangan hapus baris `COPY` sertifikat CA.** Tanpa itu, koneksi ke MongoDB Atlas dan API HTTPS lain gagal dengan `x509: failed to verify certificate`.
-- Tidak perlu tzdata: core tidak memakai zona waktu, dan mgdb punya cadangan WIB.
+- Build tag `timetzdata` menanam data zona waktu ke binary (sekitar 450 KB), karena `scratch` tidak punya `/usr/share/zoneinfo`. Tanpa itu, `time.LoadLocation("Asia/Jakarta")` di kode proyek akan mengembalikan error.
 - `docker stop` memicu graceful shutdown: request yang sedang berjalan diberi waktu selesai.
 - Simpan secret di env atau secret manager platform, jangan di dalam image atau `Dockerfile`.
 

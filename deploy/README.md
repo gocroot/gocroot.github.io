@@ -239,6 +239,7 @@ Catatan:
 - Image akhir sekitar 10 MB: hanya binary (berisi data zona waktu) dan sertifikat CA, tanpa shell, package manager, atau library lain. Berjalan sebagai user non-root (UID 65532).
 - **Jangan hapus baris `COPY` sertifikat CA.** Tanpa itu, koneksi ke MongoDB Atlas dan API HTTPS lain gagal dengan `x509: failed to verify certificate`.
 - Build tag `timetzdata` menanam data zona waktu ke binary (sekitar 450 KB), karena `scratch` tidak punya `/usr/share/zoneinfo`. Tanpa itu, `time.LoadLocation("Asia/Jakarta")` di kode proyek akan mengembalikan error.
+- Versi di `GET /version` diambil dari folder `.git` saat build. Jika `.git` dikecualikan lewat `.dockerignore`, isi saat menjalankan: `docker run -e VERSION=$(git rev-parse HEAD) ...`.
 - `docker stop` memicu graceful shutdown: request yang sedang berjalan diberi waktu selesai (maksimal 8 detik, di bawah batas default `docker stop` 10 detik).
 - Simpan secret di env atau secret manager platform, jangan di dalam image atau `Dockerfile`.
 
@@ -273,6 +274,7 @@ Persiapan di panel alwaysdata:
 2. **Remote access → SSH**: aktifkan SSH, lalu tambahkan public key deploy ke `~/.ssh/authorized_keys` di akun alwaysdata. Buat pasangan key khusus untuk deploy dengan `ssh-keygen -t ed25519 -f deploy_key -N ""`.
 3. **Profile → Managing tokens**: buat API token untuk restart site.
 4. Isi secret GitHub: `SSH_HOST` (misalnya `ssh-namaakun.alwaysdata.net`), `SSH_USERNAME`, `SSH_KEY` (isi file `deploy_key`), `APP_DIR` (path lengkap folder site, misalnya `/home/namaakun/www/myapi`), `ALWAYSDATA_TOKEN`, `ALWAYSDATA_SITE_ID`.
+5. Isi *repository variable* (Settings → Secrets and variables → Actions → **Variables**) `SITE_URL`, misalnya `https://namaakun.alwaysdata.net`. Ini bukan secret, jadi disimpan sebagai variable.
 
 `.github/workflows/deploy-alwaysdata.yml`:
 
@@ -343,11 +345,25 @@ jobs:
           ALWAYSDATA_TOKEN: ${{ secrets.ALWAYSDATA_TOKEN }}
           SITE_ID: ${{ secrets.ALWAYSDATA_SITE_ID }}
         run: curl -fsS -X POST --user "${ALWAYSDATA_TOKEN}:" "https://api.alwaysdata.com/v1/site/${SITE_ID}/restart/"
+
+      - name: Verify deployed version
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          # restart bisa "berhasil" padahal proses lama masih melayani; tunggu sampai /version = commit ini
+          for i in $(seq 1 30); do
+            live=$(curl -fsS -m 10 "$SITE_URL/version" | sed -n 's/.*"message":"\([^"]*\)".*/\1/p' || true)
+            echo "percobaan $i: server melayani '${live:-tidak diketahui}'"
+            [ "$live" = "$GITHUB_SHA" ] && { echo "versi baru sudah hidup"; exit 0; }
+            sleep 10
+          done
+          echo "Binary terunggah, tetapi proses lama masih melayani."; exit 1
 ```
 
 Catatan:
 - Binary diunggah sebagai `api.new` lalu diganti dengan `mv`. Menimpa binary yang sedang berjalan secara langsung akan gagal (*Text file busy*).
 - Restart dipanggil dari runner GitHub, jadi API token tidak pernah dikirim ke server.
+- Langkah *Verify deployed version* memastikan proses baru benar-benar melayani. Restart alwaysdata berjalan di belakang layar, jadi bisa dilaporkan berhasil padahal proses lama belum berhenti. `GET /version` di GoCroot Core menampilkan SHA commit yang ditanam otomatis oleh `go build` dari folder `.git` hasil checkout, jadi tidak perlu `-ldflags` tambahan. Jangan menanam secret ke binary lewat `-ldflags -X`: siapa pun yang mendapat file binary bisa membacanya.
 - Tombol *Hot restart* di panel alwaysdata mengirim `SIGHUP`. GoCroot Core menanganinya seperti `SIGTERM`: request yang sedang berjalan diselesaikan dulu, lalu proses keluar dan alwaysdata menjalankan binary yang baru.
 - Jika memakai password SSH, ganti `key: ${{ secrets.SSH_KEY }}` dengan `password: ${{ secrets.SSH_PASSWORD }}`. SSH key lebih aman.
 
@@ -388,7 +404,7 @@ Siapkan server sesuai bagian [Deploy Binary to VPS](#deploy-binary-to-vps) di at
    deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart api
    ```
 2. Tambahkan public key deploy ke `/home/deploy/.ssh/authorized_keys`.
-3. Isi secret GitHub: `SSH_HOST`, `SSH_USERNAME` (`deploy`), `SSH_KEY`.
+3. Isi secret GitHub: `SSH_HOST`, `SSH_USERNAME` (`deploy`), `SSH_KEY`, dan *repository variable* `SITE_URL` (URL publik API, misalnya `https://api.domainmu.com`).
 
 `.github/workflows/deploy-vps.yml`:
 
@@ -453,6 +469,19 @@ jobs:
             sudo systemctl restart api
             sleep 2
             systemctl is-active api
+
+      - name: Verify deployed version
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          # restart bisa "berhasil" padahal proses lama masih melayani; tunggu sampai /version = commit ini
+          for i in $(seq 1 30); do
+            live=$(curl -fsS -m 10 "$SITE_URL/version" | sed -n 's/.*"message":"\([^"]*\)".*/\1/p' || true)
+            echo "percobaan $i: server melayani '${live:-tidak diketahui}'"
+            [ "$live" = "$GITHUB_SHA" ] && { echo "versi baru sudah hidup"; exit 0; }
+            sleep 10
+          done
+          echo "Binary terunggah, tetapi proses lama masih melayani."; exit 1
 ```
 
 Catatan:
@@ -496,6 +525,7 @@ Persiapan sekali saja di komputer lokal:
 fly launch --no-deploy          # membuat app sesuai fly.toml
 fly secrets set PRIVATEKEY=... PUBLICKEY=... MONGOSTRING=...
 fly tokens create deploy        # simpan hasilnya sebagai secret GitHub FLY_API_TOKEN
+# lalu isi repository variable SITE_URL, misalnya https://myapi.fly.dev
 ```
 
 `.github/workflows/deploy-fly.yml`:
@@ -538,11 +568,25 @@ jobs:
       - name: Deploy
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: flyctl deploy --remote-only
+        run: flyctl deploy --remote-only --env VERSION=${{ github.sha }}
+
+      - name: Verify deployed version
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          # restart bisa "berhasil" padahal proses lama masih melayani; tunggu sampai /version = commit ini
+          for i in $(seq 1 30); do
+            live=$(curl -fsS -m 10 "$SITE_URL/version" | sed -n 's/.*"message":"\([^"]*\)".*/\1/p' || true)
+            echo "percobaan $i: server melayani '${live:-tidak diketahui}'"
+            [ "$live" = "$GITHUB_SHA" ] && { echo "versi baru sudah hidup"; exit 0; }
+            sleep 10
+          done
+          echo "Binary terunggah, tetapi proses lama masih melayani."; exit 1
 ```
 
 Catatan:
 - `auto_stop_machines = "stop"` dan `min_machines_running = 0` mematikan mesin saat tidak ada request, jadi biaya hanya dihitung saat aktif. Gantinya ada cold start singkat.
 - Secret disimpan dengan `fly secrets set`, jadi tidak masuk ke image maupun repo.
+- `--env VERSION=...` mengisi versi untuk `GET /version`. Ini perlu karena `.dockerignore` sering mengecualikan `.git`, sehingga revisi git tidak ikut ter-build.
 
 <!-- {% endraw %} -->

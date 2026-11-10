@@ -13,6 +13,8 @@ Key conventions for code written in a GoCroot project:
 
 ## Docs
 
+- [AGENTS.md in core (Markdown, Indonesian)](https://raw.githubusercontent.com/gocroot/core/main/AGENTS.md): rules for AI coding agents working in a GoCroot project. Every project created from the template includes this file.
+
 - [GoCroot guide (Markdown)](https://gocroot.if.co.id/README.md): quick start, project structure, routing, controllers, authentication, MongoDB, testing
 - [Deployment guide (Markdown, Indonesian)](https://gocroot.if.co.id/deploy/README.md): Cloud Run functions, VPS with systemd, web hosting, Docker `scratch` image, GitHub Actions CI/CD per hosting
 - [Core template README (Markdown, Indonesian)](https://raw.githubusercontent.com/gocroot/core/main/README.md): creating a project from the template, environment variables, Cloud Run functions workflow, database connection

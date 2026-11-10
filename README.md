@@ -32,7 +32,7 @@ Elevate your cloud operations with **GoCroot**, a lightweight Go backend skeleto
 | **Docker** | `run/main.go` | ~10 MB `scratch` image (binary + CA certificates), see the [deployment guide](./deploy/#deploy-with-docker) |
 | **Local development** | `run/main.go` | `go run ./run` |
 
-The binary never includes the Cloud Functions framework. It reads `PORT` from the environment and shuts down gracefully on `SIGINT`, `SIGTERM`, and `SIGHUP` (Ctrl+C, `docker stop`, `systemctl restart`, a hosting panel's *Hot restart*): requests in flight get up to 8 seconds to finish, then the process always exits so the new binary takes over.
+The binary never includes the Cloud Functions framework. It reads `PORT` from the environment and shuts down gracefully on `SIGINT`, `SIGTERM`, `SIGHUP`, `SIGUSR1`, and `SIGUSR2` (Ctrl+C, `docker stop`, `systemctl restart`, a hosting panel's *Hot restart*): requests in flight get up to 8 seconds to finish, then the process always exits so the new binary takes over.
 
 ---
 

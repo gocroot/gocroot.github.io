@@ -8,7 +8,7 @@ Semua cara di bawah memakai **GoCroot Core** yang sama. Untuk Google Cloud Run f
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o api ./run
 ```
 
-Binary ini statis (sekitar 7 MB), tidak membawa framework Cloud Functions, membaca port dari env `PORT` (default `3000`), dan berhenti dengan rapi saat menerima `SIGINT`, `SIGTERM`, atau `SIGHUP`.
+Binary ini statis (sekitar 7 MB), tidak membawa framework Cloud Functions, membaca port dari env `PORT` (default `3000`), dan berhenti dengan rapi saat menerima `SIGINT`, `SIGTERM`, `SIGHUP`, `SIGUSR1`, atau `SIGUSR2`.
 
 ## Berhenti dengan Rapi (Graceful Shutdown)
 
@@ -20,13 +20,17 @@ Setiap hosting menghentikan proses dengan mengirim sinyal. Tanpa penanganan siny
 |---|---|
 | `SIGINT` | Ctrl+C saat `go run ./run` |
 | `SIGTERM` | `systemctl stop/restart`, `docker stop`, Cloud Run, Render, Fly.io |
-| `SIGHUP` | Fitur *Hot restart* di panel hosting (misalnya alwaysdata). Tanpa penanganan, `SIGHUP` membunuh proses Go seketika |
+| `SIGHUP`, `SIGUSR1`, `SIGUSR2` | Fitur *Hot restart* di panel hosting. Di alwaysdata sinyalnya bisa dipilih di antara ketiganya. Tanpa penanganan, ketiganya membunuh proses Go seketika |
 
-Batas 8 detik sengaja lebih pendek dari jeda sebelum supervisor mengirim `SIGKILL` (Docker dan Cloud Run 10 detik, systemd 90 detik). Jika Anda membuat server atau worker sendiri (misalnya consumer antrean), pakai pola yang sama:
+Batas 8 detik sengaja lebih pendek dari jeda sebelum supervisor mengirim `SIGKILL` (Docker dan Cloud Run 10 detik, systemd 90 detik). Jika Anda membuat server atau worker sendiri (misalnya consumer antrean), pakai pola yang sama. `SIGUSR1` dan `SIGUSR2` tidak ada di Windows, jadi daftar sinyal di core dipisah per OS (`run/sinyal_unix.go` dan `run/sinyal_other.go`) supaya `go run ./run` tetap jalan di Windows:
 
 ```go
+// run/sinyal_unix.go (//go:build unix)
+var sinyalBerhenti = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2}
+
+// run/main.go
 berhenti := make(chan os.Signal, 1)
-signal.Notify(berhenti, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+signal.Notify(berhenti, sinyalBerhenti...)
 s := <-berhenti
 log.Printf("sinyal %v diterima, menutup dengan rapi (maks %s)", s, masaTutup)
 
@@ -364,7 +368,7 @@ Catatan:
 - Binary diunggah sebagai `api.new` lalu diganti dengan `mv`. Menimpa binary yang sedang berjalan secara langsung akan gagal (*Text file busy*).
 - Restart dipanggil dari runner GitHub, jadi API token tidak pernah dikirim ke server.
 - Langkah *Verify deployed version* memastikan proses baru benar-benar melayani. Restart alwaysdata berjalan di belakang layar, jadi bisa dilaporkan berhasil padahal proses lama belum berhenti. `GET /version` di GoCroot Core menampilkan SHA commit yang ditanam otomatis oleh `go build` dari folder `.git` hasil checkout, jadi tidak perlu `-ldflags` tambahan. Jangan menanam secret ke binary lewat `-ldflags -X`: siapa pun yang mendapat file binary bisa membacanya.
-- Tombol *Hot restart* di panel alwaysdata mengirim `SIGHUP`. GoCroot Core menanganinya seperti `SIGTERM`: request yang sedang berjalan diselesaikan dulu, lalu proses keluar dan alwaysdata menjalankan binary yang baru.
+- Tombol *Hot restart* di panel alwaysdata mengirim sinyal yang dipilih di pengaturan site: `SIGHUP`, `SIGUSR1`, atau `SIGUSR2`. GoCroot Core menangani ketiganya. Semuanya diperlakukan seperti `SIGTERM`: request yang sedang berjalan diselesaikan dulu, lalu proses keluar dan alwaysdata menjalankan binary yang baru.
 - Jika memakai password SSH, ganti `key: ${{ secrets.SSH_KEY }}` dengan `password: ${{ secrets.SSH_PASSWORD }}`. SSH key lebih aman.
 
 ### Deploy ke Render

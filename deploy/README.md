@@ -8,7 +8,35 @@ Semua cara di bawah memakai **GoCroot Core** yang sama. Untuk Google Cloud Run f
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o api ./run
 ```
 
-Binary ini statis (sekitar 7 MB), tidak membawa framework Cloud Functions, membaca port dari env `PORT` (default `3000`), dan berhenti dengan rapi saat menerima `SIGTERM`.
+Binary ini statis (sekitar 7 MB), tidak membawa framework Cloud Functions, membaca port dari env `PORT` (default `3000`), dan berhenti dengan rapi saat menerima `SIGINT`, `SIGTERM`, atau `SIGHUP`.
+
+## Berhenti dengan Rapi (Graceful Shutdown)
+
+Setiap hosting menghentikan proses dengan mengirim sinyal. Tanpa penanganan sinyal, proses berhenti seketika di tengah request yang sedang berjalan, sehingga data bisa terputus separuh tertulis. Sebaliknya, proses yang tidak pernah benar-benar keluar akan terus melayani dengan kode lama meski binary baru sudah terunggah: restart dilaporkan berhasil, tetapi tidak ada yang berubah.
+
+`run/main.go` di GoCroot Core menutup kedua celah itu: request yang sedang jalan diberi waktu selesai (maksimal 8 detik), lalu proses dipastikan keluar.
+
+| Sinyal | Dikirim oleh |
+|---|---|
+| `SIGINT` | Ctrl+C saat `go run ./run` |
+| `SIGTERM` | `systemctl stop/restart`, `docker stop`, Cloud Run, Render, Fly.io |
+| `SIGHUP` | Fitur *Hot restart* di panel hosting (misalnya alwaysdata). Tanpa penanganan, `SIGHUP` membunuh proses Go seketika |
+
+Batas 8 detik sengaja lebih pendek dari jeda sebelum supervisor mengirim `SIGKILL` (Docker dan Cloud Run 10 detik, systemd 90 detik). Jika Anda membuat server atau worker sendiri (misalnya consumer antrean), pakai pola yang sama:
+
+```go
+berhenti := make(chan os.Signal, 1)
+signal.Notify(berhenti, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+s := <-berhenti
+log.Printf("sinyal %v diterima, menutup dengan rapi (maks %s)", s, masaTutup)
+
+ctx, cancel := context.WithTimeout(context.Background(), masaTutup)
+defer cancel()
+if err := srv.Shutdown(ctx); err != nil {
+	log.Println("penutupan tidak tuntas:", err)
+	srv.Close() // koneksi tersisa ditutup paksa, proses tetap keluar
+}
+```
 
 ## Siapkan SSH dan Script Deploy
 
@@ -211,7 +239,7 @@ Catatan:
 - Image akhir sekitar 10 MB: hanya binary (berisi data zona waktu) dan sertifikat CA, tanpa shell, package manager, atau library lain. Berjalan sebagai user non-root (UID 65532).
 - **Jangan hapus baris `COPY` sertifikat CA.** Tanpa itu, koneksi ke MongoDB Atlas dan API HTTPS lain gagal dengan `x509: failed to verify certificate`.
 - Build tag `timetzdata` menanam data zona waktu ke binary (sekitar 450 KB), karena `scratch` tidak punya `/usr/share/zoneinfo`. Tanpa itu, `time.LoadLocation("Asia/Jakarta")` di kode proyek akan mengembalikan error.
-- `docker stop` memicu graceful shutdown: request yang sedang berjalan diberi waktu selesai.
+- `docker stop` memicu graceful shutdown: request yang sedang berjalan diberi waktu selesai (maksimal 8 detik, di bawah batas default `docker stop` 10 detik).
 - Simpan secret di env atau secret manager platform, jangan di dalam image atau `Dockerfile`.
 
 ## CI/CD dengan GitHub Actions
@@ -320,6 +348,7 @@ jobs:
 Catatan:
 - Binary diunggah sebagai `api.new` lalu diganti dengan `mv`. Menimpa binary yang sedang berjalan secara langsung akan gagal (*Text file busy*).
 - Restart dipanggil dari runner GitHub, jadi API token tidak pernah dikirim ke server.
+- Tombol *Hot restart* di panel alwaysdata mengirim `SIGHUP`. GoCroot Core menanganinya seperti `SIGTERM`: request yang sedang berjalan diselesaikan dulu, lalu proses keluar dan alwaysdata menjalankan binary yang baru.
 - Jika memakai password SSH, ganti `key: ${{ secrets.SSH_KEY }}` dengan `password: ${{ secrets.SSH_PASSWORD }}`. SSH key lebih aman.
 
 ### Deploy ke Render

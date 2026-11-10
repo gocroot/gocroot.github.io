@@ -9,6 +9,7 @@ Key conventions for code written in a GoCroot project:
 - Configuration comes only from environment variables read in `config.SetEnv()`: `PRIVATEKEY`, `PUBLICKEY`, `MONGOSTRING`, `PORT` (default 3000), `IP`, `ALLOWED_ORIGINS`. Never log secret values.
 - Login tokens are PASETO v4.public via `github.com/whatsauth/watoken` (not JWT), sent in the `Token` header. Invalid or expired tokens get `401`.
 - MongoDB access uses `github.com/gocroot/mgdb`, connected once in `SetEnv()` and stored in `config.MongoDB`. Decode request bodies into typed structs before building filters (no raw `bson.M` from user input).
+- `run/main.go` shuts down gracefully on `SIGINT`, `SIGTERM`, and `SIGHUP` (hosting "Hot restart" sends `SIGHUP`): `srv.Shutdown` with an 8-second limit, then `srv.Close()`. Keep this; long-running workers must use the same pattern.
 - Do not `panic` or `log.Fatal` during init; store the error and return `503` from endpoints that need it.
 
 ## Docs

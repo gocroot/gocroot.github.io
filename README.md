@@ -34,8 +34,6 @@ Elevate your cloud operations with **GoCroot**, a lightweight Go backend skeleto
 
 The binary never includes the Cloud Functions framework. It reads `PORT` from the environment and shuts down gracefully on `SIGTERM` (`docker stop`, `systemctl restart`).
 
-> The older templates ([gocroot/gcp](https://github.com/gocroot/gcp) and the Fiber-based [gocroot/gocroot](https://github.com/gocroot/gocroot) / [gocroot/alwaysdata](https://github.com/gocroot/alwaysdata)) are no longer needed: core covers all of these platforms. Start new projects from core.
-
 ---
 
 ## **Quick Start**
